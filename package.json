@@ -1,0 +1,15 @@
+{
+  "name": "tcocalc-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "format": "prettier --write \"**/*.md\"",
+    "format:check": "prettier --check \"**/*.md\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}
