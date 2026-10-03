@@ -39,8 +39,8 @@ describe("Home Page Component", () => {
 
   it("updates inputs when switching powertrain to electric", () => {
     render(<Home />);
-    const powertrainSelect = screen.getByLabelText(/Powertrain/i);
-    fireEvent.change(powertrainSelect, { target: { value: "electric" } });
+    const electricRadio = screen.getByRole("radio", { name: "Electric" });
+    fireEvent.click(electricRadio);
 
     const efficiencyLabel = screen.getByText(/Efficiency \(kWh\/100mi\)/i);
     expect(efficiencyLabel).toBeInTheDocument();

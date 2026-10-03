@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import {
   AcquisitionForm,
+  PowertrainSelector,
   UsageForm,
   SummaryCards,
   BreakdownCard,
@@ -40,6 +41,41 @@ const sampleLeaseInput: TCOInput = {
 };
 
 describe("Calculator Modular Components", () => {
+  describe("PowertrainSelector", () => {
+    it("renders all three options with appropriate aria-checked states", () => {
+      render(<PowertrainSelector value="hybrid" onChange={vi.fn()} />);
+
+      const gasRadio = screen.getByRole("radio", { name: "Gas" });
+      const hybridRadio = screen.getByRole("radio", { name: "Hybrid" });
+      const electricRadio = screen.getByRole("radio", { name: "Electric" });
+
+      expect(gasRadio).toHaveAttribute("aria-checked", "false");
+      expect(hybridRadio).toHaveAttribute("aria-checked", "true");
+      expect(electricRadio).toHaveAttribute("aria-checked", "false");
+    });
+
+    it("triggers onChange when clicking a radio pill", () => {
+      const onChange = vi.fn();
+      render(<PowertrainSelector value="gas" onChange={onChange} />);
+
+      fireEvent.click(screen.getByRole("radio", { name: "Electric" }));
+      expect(onChange).toHaveBeenCalledWith("electric");
+    });
+
+    it("supports keyboard arrow navigation", () => {
+      const onChange = vi.fn();
+      render(<PowertrainSelector value="hybrid" onChange={onChange} />);
+
+      const radiogroup = screen.getByRole("radiogroup", { name: "Powertrain" });
+
+      fireEvent.keyDown(radiogroup, { key: "ArrowRight" });
+      expect(onChange).toHaveBeenCalledWith("electric");
+
+      fireEvent.keyDown(radiogroup, { key: "ArrowLeft" });
+      expect(onChange).toHaveBeenCalledWith("gas");
+    });
+  });
+
   describe("AcquisitionForm", () => {
     it("renders loan mode and triggers callbacks", () => {
       const onModeChange = vi.fn();
@@ -71,6 +107,10 @@ describe("Calculator Modular Components", () => {
       const nameInput = screen.getByLabelText("Vehicle Name");
       fireEvent.change(nameInput, { target: { value: "2025 Test Model" } });
       expect(onNameChange).toHaveBeenCalledWith("2025 Test Model");
+
+      // Switch powertrain via pill selector
+      fireEvent.click(screen.getByRole("radio", { name: "Electric" }));
+      expect(onPowertrainChange).toHaveBeenCalledWith("electric");
 
       // Change purchase price
       const priceInput = screen.getByLabelText(/Purchase Price/i);

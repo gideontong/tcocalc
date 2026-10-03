@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AcquisitionType, PowertrainType, TCOInput } from "@/lib/tco";
 import { cn } from "@/lib/utils";
+import { PowertrainSelector } from "./powertrain-selector";
 
 export interface AcquisitionFormProps {
   input: TCOInput;
@@ -86,31 +87,24 @@ export function AcquisitionForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="powertrain">Powertrain</Label>
-            <select
-              id="powertrain"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-              value={input.powertrain}
-              onChange={(e) => onPowertrainChange(e.target.value as PowertrainType)}
-            >
-              <option value="gas">Gas (ICE)</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="electric">Electric (EV)</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="purchasePrice">
-              {input.acquisition === "lease" ? "MSRP / Agreed Price ($)" : "Purchase Price ($)"}
-            </Label>
-            <Input
-              id="purchasePrice"
-              type="number"
-              value={input.purchasePrice}
-              onChange={(e) => onNumberFieldChange("purchasePrice", e.target.value)}
-            />
-          </div>
+        <div>
+          <Label className="mb-1.5 block">Powertrain</Label>
+          <PowertrainSelector
+            value={input.powertrain}
+            onChange={onPowertrainChange}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="purchasePrice">
+            {input.acquisition === "lease" ? "MSRP / Agreed Price ($)" : "Purchase Price ($)"}
+          </Label>
+          <Input
+            id="purchasePrice"
+            type="number"
+            value={input.purchasePrice}
+            onChange={(e) => onNumberFieldChange("purchasePrice", e.target.value)}
+          />
         </div>
 
         {/* Conditional Fields: Cash Mode */}
