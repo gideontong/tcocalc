@@ -1,33 +1,45 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import {
-  PresetSelector,
   AcquisitionForm,
   UsageForm,
   SummaryCards,
   BreakdownCard,
   ScheduleTable,
 } from "../index";
-import { PRESETS } from "@/lib/presets";
-import { calculateTCO } from "@/lib/tco";
+import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
+import { calculateTCO, TCOInput } from "@/lib/tco";
+
+const sampleLoanInput: TCOInput = { ...DEFAULT_TCO_INPUT };
+
+const sampleGasInput: TCOInput = {
+  ...DEFAULT_TCO_INPUT,
+  powertrain: "gas",
+  fuelEconomyMPG: 32,
+  fuelPricePerGal: 3.75,
+};
+
+const sampleLeaseInput: TCOInput = {
+  ...DEFAULT_TCO_INPUT,
+  acquisition: "lease",
+  powertrain: "electric",
+  efficiencyKWhPer100Mi: 25,
+  electricityRatePerKWh: 0.16,
+  lease: {
+    leaseTermMonths: 36,
+    dueAtSigning: 3500,
+    monthlyPayment: 429,
+    moneyFactor: 0.0022,
+    residualPercent: 57.0,
+    acquisitionFee: 695,
+    dispositionFee: 395,
+    annualMileageLimit: 12000,
+    excessMileageFeeRate: 0.25,
+    buyoutAtEnd: false,
+  },
+};
 
 describe("Calculator Modular Components", () => {
-  describe("PresetSelector", () => {
-    it("calls onSelectPreset with correct key when clicked", () => {
-      const onSelect = vi.fn();
-      render(<PresetSelector onSelectPreset={onSelect} />);
-
-      fireEvent.click(screen.getByRole("button", { name: /Gas Sedan/i }));
-      expect(onSelect).toHaveBeenCalledWith("cash");
-
-      fireEvent.click(screen.getByRole("button", { name: /Hybrid SUV/i }));
-      expect(onSelect).toHaveBeenCalledWith("loan");
-
-      fireEvent.click(screen.getByRole("button", { name: /Electric EV/i }));
-      expect(onSelect).toHaveBeenCalledWith("lease");
-    });
-  });
-
   describe("AcquisitionForm", () => {
     it("renders loan mode and triggers callbacks", () => {
       const onModeChange = vi.fn();
@@ -38,7 +50,7 @@ describe("Calculator Modular Components", () => {
 
       render(
         <AcquisitionForm
-          input={PRESETS.loan}
+          input={sampleLoanInput}
           onAcquisitionModeChange={onModeChange}
           onVehicleNameChange={onNameChange}
           onPowertrainChange={onPowertrainChange}
@@ -71,7 +83,7 @@ describe("Calculator Modular Components", () => {
 
       render(
         <AcquisitionForm
-          input={PRESETS.lease}
+          input={sampleLeaseInput}
           onAcquisitionModeChange={vi.fn()}
           onVehicleNameChange={vi.fn()}
           onPowertrainChange={vi.fn()}
@@ -100,7 +112,7 @@ describe("Calculator Modular Components", () => {
 
       render(
         <UsageForm
-          input={PRESETS.lease} // electric preset
+          input={sampleLeaseInput}
           onNumberFieldChange={onNumberChange}
           onCalculate={onCalculate}
         />
@@ -116,7 +128,7 @@ describe("Calculator Modular Components", () => {
     it("renders gas fields for gas powertrain", () => {
       render(
         <UsageForm
-          input={PRESETS.cash} // gas preset
+          input={sampleGasInput}
           onNumberFieldChange={vi.fn()}
           onCalculate={vi.fn()}
         />
@@ -129,7 +141,7 @@ describe("Calculator Modular Components", () => {
 
   describe("SummaryCards", () => {
     it("renders metric values properly", () => {
-      const result = calculateTCO(PRESETS.loan);
+      const result = calculateTCO(sampleLoanInput);
       render(<SummaryCards result={result} />);
 
       expect(screen.getByText("Monthly Average")).toBeInTheDocument();
@@ -141,7 +153,7 @@ describe("Calculator Modular Components", () => {
 
   describe("BreakdownCard", () => {
     it("renders category breakdown items", () => {
-      const result = calculateTCO(PRESETS.loan);
+      const result = calculateTCO(sampleLoanInput);
       render(<BreakdownCard result={result} />);
 
       expect(screen.getByText("Expense Category Breakdown")).toBeInTheDocument();
@@ -153,12 +165,11 @@ describe("Calculator Modular Components", () => {
 
   describe("ScheduleTable", () => {
     it("renders table with yearly rows", () => {
-      const result = calculateTCO(PRESETS.loan);
+      const result = calculateTCO(sampleLoanInput);
       render(<ScheduleTable result={result} />);
 
       expect(screen.getByText("Annual Progression Schedule")).toBeInTheDocument();
       expect(screen.getByText("Loan Pay")).toBeInTheDocument();
-      // Year 1 row should be present
       expect(screen.getByText("1")).toBeInTheDocument();
     });
   });

@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import { calculateTCO, AcquisitionType, PowertrainType, TCOInput, TCOResult } from "@/lib/tco";
-import { PRESETS, PresetKey } from "@/lib/presets";
+import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
 import {
-  PresetSelector,
   AcquisitionForm,
   UsageForm,
   SummaryCards,
@@ -13,14 +12,8 @@ import {
 } from "@/components/calculator";
 
 export default function Home() {
-  const [input, setInput] = React.useState<TCOInput>(PRESETS.loan);
-  const [result, setResult] = React.useState<TCOResult>(() => calculateTCO(PRESETS.loan));
-
-  const applyPreset = (key: PresetKey) => {
-    const p = PRESETS[key];
-    setInput(p);
-    setResult(calculateTCO(p));
-  };
+  const [input, setInput] = React.useState<TCOInput>(DEFAULT_TCO_INPUT);
+  const [result, setResult] = React.useState<TCOResult>(() => calculateTCO(DEFAULT_TCO_INPUT));
 
   const setAcquisitionMode = (mode: AcquisitionType) => {
     const next: TCOInput = { ...input, acquisition: mode };
@@ -114,9 +107,6 @@ export default function Home() {
             Total Cost of Ownership (TCO) calculator for driving a vehicle across Cash, Loan, and Lease options.
           </p>
         </header>
-
-        {/* Preset Selector */}
-        <PresetSelector onSelectPreset={applyPreset} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Form Controls */}

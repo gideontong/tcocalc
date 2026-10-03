@@ -37,13 +37,10 @@ describe("Home Page Component", () => {
     expect(screen.getByText(/vehicle returned/i)).toBeInTheDocument();
   });
 
-  it("updates inputs when clicking quick preset buttons", () => {
+  it("updates inputs when switching powertrain to electric", () => {
     render(<Home />);
-    const evButton = screen.getByRole("button", { name: /Electric EV/i });
-    fireEvent.click(evButton);
-
-    const vehicleInput = screen.getByLabelText("Vehicle Name") as HTMLInputElement;
-    expect(vehicleInput.value).toBe("2024 Tesla Model 3");
+    const powertrainSelect = screen.getByLabelText(/Powertrain/i);
+    fireEvent.change(powertrainSelect, { target: { value: "electric" } });
 
     const efficiencyLabel = screen.getByText(/Efficiency \(kWh\/100mi\)/i);
     expect(efficiencyLabel).toBeInTheDocument();
