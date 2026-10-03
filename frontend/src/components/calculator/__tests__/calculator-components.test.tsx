@@ -1,0 +1,165 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  PresetSelector,
+  AcquisitionForm,
+  UsageForm,
+  SummaryCards,
+  BreakdownCard,
+  ScheduleTable,
+} from "../index";
+import { PRESETS } from "@/lib/presets";
+import { calculateTCO } from "@/lib/tco";
+
+describe("Calculator Modular Components", () => {
+  describe("PresetSelector", () => {
+    it("calls onSelectPreset with correct key when clicked", () => {
+      const onSelect = vi.fn();
+      render(<PresetSelector onSelectPreset={onSelect} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Gas Sedan/i }));
+      expect(onSelect).toHaveBeenCalledWith("cash");
+
+      fireEvent.click(screen.getByRole("button", { name: /Hybrid SUV/i }));
+      expect(onSelect).toHaveBeenCalledWith("loan");
+
+      fireEvent.click(screen.getByRole("button", { name: /Electric EV/i }));
+      expect(onSelect).toHaveBeenCalledWith("lease");
+    });
+  });
+
+  describe("AcquisitionForm", () => {
+    it("renders loan mode and triggers callbacks", () => {
+      const onModeChange = vi.fn();
+      const onNameChange = vi.fn();
+      const onPowertrainChange = vi.fn();
+      const onNumberChange = vi.fn();
+      const onLeaseChange = vi.fn();
+
+      render(
+        <AcquisitionForm
+          input={PRESETS.loan}
+          onAcquisitionModeChange={onModeChange}
+          onVehicleNameChange={onNameChange}
+          onPowertrainChange={onPowertrainChange}
+          onNumberFieldChange={onNumberChange}
+          onLeaseFieldChange={onLeaseChange}
+        />
+      );
+
+      // Verify Loan elements
+      expect(screen.getByLabelText(/Down Payment/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Loan Term/i)).toBeInTheDocument();
+
+      // Trigger mode switch
+      fireEvent.click(screen.getByRole("button", { name: /Cash Purchase/i }));
+      expect(onModeChange).toHaveBeenCalledWith("cash");
+
+      // Change vehicle name
+      const nameInput = screen.getByLabelText("Vehicle Name");
+      fireEvent.change(nameInput, { target: { value: "2025 Test Model" } });
+      expect(onNameChange).toHaveBeenCalledWith("2025 Test Model");
+
+      // Change purchase price
+      const priceInput = screen.getByLabelText(/Purchase Price/i);
+      fireEvent.change(priceInput, { target: { value: "39000" } });
+      expect(onNumberChange).toHaveBeenCalledWith("purchasePrice", "39000");
+    });
+
+    it("renders lease mode inputs and triggers lease callbacks", () => {
+      const onLeaseChange = vi.fn();
+
+      render(
+        <AcquisitionForm
+          input={PRESETS.lease}
+          onAcquisitionModeChange={vi.fn()}
+          onVehicleNameChange={vi.fn()}
+          onPowertrainChange={vi.fn()}
+          onNumberFieldChange={vi.fn()}
+          onLeaseFieldChange={onLeaseChange}
+        />
+      );
+
+      expect(screen.getByLabelText(/Due at Signing/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Direct Monthly Quote/i)).toBeInTheDocument();
+
+      const signingInput = screen.getByLabelText(/Due at Signing/i);
+      fireEvent.change(signingInput, { target: { value: "4000" } });
+      expect(onLeaseChange).toHaveBeenCalledWith("dueAtSigning", 4000);
+
+      const buyoutCheckbox = screen.getByLabelText(/Exercise purchase buyout/i);
+      fireEvent.click(buyoutCheckbox);
+      expect(onLeaseChange).toHaveBeenCalledWith("buyoutAtEnd", true);
+    });
+  });
+
+  describe("UsageForm", () => {
+    it("renders electric fields and responds to Recalculate click", () => {
+      const onNumberChange = vi.fn();
+      const onCalculate = vi.fn();
+
+      render(
+        <UsageForm
+          input={PRESETS.lease} // electric preset
+          onNumberFieldChange={onNumberChange}
+          onCalculate={onCalculate}
+        />
+      );
+
+      expect(screen.getByLabelText(/Efficiency \(kWh\/100mi\)/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Electricity Rate/i)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Recalculate/i }));
+      expect(onCalculate).toHaveBeenCalled();
+    });
+
+    it("renders gas fields for gas powertrain", () => {
+      render(
+        <UsageForm
+          input={PRESETS.cash} // gas preset
+          onNumberFieldChange={vi.fn()}
+          onCalculate={vi.fn()}
+        />
+      );
+
+      expect(screen.getByLabelText(/Fuel Economy \(MPG\)/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Gas Price/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("SummaryCards", () => {
+    it("renders metric values properly", () => {
+      const result = calculateTCO(PRESETS.loan);
+      render(<SummaryCards result={result} />);
+
+      expect(screen.getByText("Monthly Average")).toBeInTheDocument();
+      expect(screen.getByText("Cost Per Mile")).toBeInTheDocument();
+      expect(screen.getByText("Net Ownership Cost")).toBeInTheDocument();
+      expect(screen.getByText("Residual Value")).toBeInTheDocument();
+    });
+  });
+
+  describe("BreakdownCard", () => {
+    it("renders category breakdown items", () => {
+      const result = calculateTCO(PRESETS.loan);
+      render(<BreakdownCard result={result} />);
+
+      expect(screen.getByText("Expense Category Breakdown")).toBeInTheDocument();
+      expect(screen.getByText("Depreciation")).toBeInTheDocument();
+      expect(screen.getByText("Financing Interest")).toBeInTheDocument();
+      expect(screen.getByText("Fuel / Electricity")).toBeInTheDocument();
+    });
+  });
+
+  describe("ScheduleTable", () => {
+    it("renders table with yearly rows", () => {
+      const result = calculateTCO(PRESETS.loan);
+      render(<ScheduleTable result={result} />);
+
+      expect(screen.getByText("Annual Progression Schedule")).toBeInTheDocument();
+      expect(screen.getByText("Loan Pay")).toBeInTheDocument();
+      // Year 1 row should be present
+      expect(screen.getByText("1")).toBeInTheDocument();
+    });
+  });
+});
