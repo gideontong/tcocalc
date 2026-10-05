@@ -28,8 +28,8 @@ if ! command -v npm >/dev/null 2>&1; then
   fi
 fi
 
-BACKEND_PORT="${BACKEND_PORT:-9090}"
-FRONTEND_PORT="${FRONTEND_PORT:-8080}"
+BACKEND_PORT="${BACKEND_PORT:-9095}"
+FRONTEND_PORT="${FRONTEND_PORT:-8085}"
 
 # Function to check whether a port is currently open/in-use
 check_port_available() {
