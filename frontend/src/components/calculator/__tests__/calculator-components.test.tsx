@@ -204,13 +204,15 @@ describe("Calculator Modular Components", () => {
   });
 
   describe("ScheduleTable", () => {
-    it("renders table with yearly rows", () => {
+    it("renders progression chart and table with yearly rows", () => {
       const result = calculateTCO(sampleLoanInput);
       render(<ScheduleTable result={result} />);
 
       expect(screen.getByText("Annual Progression Schedule")).toBeInTheDocument();
+      expect(screen.getByLabelText("Progression Chart")).toBeInTheDocument();
       expect(screen.getByText("Loan Pay")).toBeInTheDocument();
       expect(screen.getByText("1")).toBeInTheDocument();
+      expect(screen.getByText("10")).toBeInTheDocument();
     });
   });
 });

@@ -68,7 +68,7 @@ Cash Purchase, Loan Financing, and Vehicle Lease options.`,
 	rootCmd.Flags().Float64Var(&taxRateFlag, "tax-rate", 7.5, "Sales tax rate (%)")
 	rootCmd.Flags().IntVar(&termMonthsFlag, "loan-months", 60, "Loan duration in months (0 for cash)")
 	rootCmd.Flags().Float64Var(&interestFlag, "interest-rate", 5.5, "Annual loan interest rate (%)")
-	rootCmd.Flags().IntVarP(&yearsFlag, "years", "y", 5, "Ownership duration in years")
+	rootCmd.Flags().IntVarP(&yearsFlag, "years", "y", 10, "Ownership duration in years")
 	rootCmd.Flags().Float64VarP(&mileageFlag, "mileage", "m", 12000, "Annual mileage (miles/year)")
 	rootCmd.Flags().Float64Var(&mpgFlag, "mpg", 30.0, "Fuel economy in MPG (gas/hybrid)")
 	rootCmd.Flags().Float64Var(&fuelPriceFlag, "fuel-price", 3.80, "Fuel price per gallon ($)")

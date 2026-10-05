@@ -12,6 +12,8 @@ describe("Home Page Component", () => {
     expect(screen.getByRole("button", { name: /Cash Purchase/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Loan Financing/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Vehicle Lease/i })).toBeInTheDocument();
+    expect((screen.getByLabelText(/Analysis Horizon/i) as HTMLInputElement).value).toBe("10");
+    expect(screen.getByLabelText("Progression Chart")).toBeInTheDocument();
   });
 
   it("switches to Cash Purchase mode and hides loan fields", () => {

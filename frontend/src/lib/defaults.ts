@@ -9,7 +9,7 @@ export const DEFAULT_TCO_INPUT: TCOInput = {
   salesTaxRate: 7.5,
   loanTermMonths: 60,
   loanInterestRate: 5.5,
-  ownershipYears: 5,
+  ownershipYears: 10,
   annualMileage: 14000,
   fuelEconomyMPG: 39,
   fuelPricePerGal: 3.80,
