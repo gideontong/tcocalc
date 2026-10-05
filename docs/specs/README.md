@@ -12,10 +12,11 @@ docs/specs/YYYY-MM-DD-<title>.md
 
 ## Specifications & Plans
 
-| File                                                               | Status    | Description                                                                                                                                             |
-| :----------------------------------------------------------------- | :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [2026-10-02-initialization.md](2026-10-02-initialization.md)       | Completed | Initial project architecture, monorepo structure, Go core engine (backend API + CLI), Next.js frontend with shadcn/ui, testing, and linting guidelines. |
-| [2026-10-02-acquisition-modes.md](2026-10-02-acquisition-modes.md) | Completed | Specification and plan for toggling acquisition details between Cash Purchase (flat price), Loan Financing (amortization), and Vehicle Lease.           |
+| File                                                                                         | Status    | Description                                                                                                                                             |
+| :------------------------------------------------------------------------------------------- | :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [2026-10-02-initialization.md](2026-10-02-initialization.md)                                 | Completed | Initial project architecture, monorepo structure, Go core engine (backend API + CLI), Next.js frontend with shadcn/ui, testing, and linting guidelines. |
+| [2026-10-02-acquisition-modes.md](2026-10-02-acquisition-modes.md)                           | Completed | Specification and plan for toggling acquisition details between Cash Purchase (flat price), Loan Financing (amortization), and Vehicle Lease.           |
+| [2026-10-05-multi-vehicle-comparison-table.md](2026-10-05-multi-vehicle-comparison-table.md) | Completed | Specification for saving configured vehicles, managing them in a comparison table, and switching between views with live synchronization.               |
 
 ## Updating This Index
 

@@ -7,14 +7,16 @@ import {
   SummaryCards,
   BreakdownCard,
   ScheduleTable,
+  VehicleTable,
 } from "../index";
 import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
-import { calculateTCO, TCOInput } from "@/lib/tco";
+import { calculateTCO, TCOInput, SavedVehicle } from "@/lib/tco";
 
 const sampleLoanInput: TCOInput = { ...DEFAULT_TCO_INPUT };
 
 const sampleGasInput: TCOInput = {
   ...DEFAULT_TCO_INPUT,
+  vehicleName: "2024 Honda Civic",
   powertrain: "gas",
   fuelEconomyMPG: 32,
   fuelPricePerGal: 3.75,
@@ -213,6 +215,78 @@ describe("Calculator Modular Components", () => {
       expect(screen.getByText("Loan Pay")).toBeInTheDocument();
       expect(screen.getByText("1")).toBeInTheDocument();
       expect(screen.getByText("10")).toBeInTheDocument();
+    });
+  });
+
+  describe("VehicleTable", () => {
+    it("renders empty state prompt when no vehicles are saved", () => {
+      render(
+        <VehicleTable
+          vehicles={[]}
+          selectedId={null}
+          onSelectVehicle={vi.fn()}
+          onAddVehicle={vi.fn()}
+          onDeleteVehicle={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/No vehicles added to comparison yet/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Add Configured Vehicle/i })).toBeInTheDocument();
+    });
+
+    it("renders saved vehicle rows and handles selection, addition, and deletion", () => {
+      const onSelect = vi.fn();
+      const onAdd = vi.fn();
+      const onDelete = vi.fn();
+
+      const sampleVehicles: SavedVehicle[] = [
+        {
+          id: "v-1",
+          input: sampleLoanInput,
+          result: calculateTCO(sampleLoanInput),
+          createdAt: 1000,
+        },
+        {
+          id: "v-2",
+          input: sampleGasInput,
+          result: calculateTCO(sampleGasInput),
+          createdAt: 2000,
+        },
+      ];
+
+      render(
+        <VehicleTable
+          vehicles={sampleVehicles}
+          selectedId="v-1"
+          onSelectVehicle={onSelect}
+          onAddVehicle={onAdd}
+          onDeleteVehicle={onDelete}
+        />
+      );
+
+      // Verify header and button
+      expect(screen.getByText("Saved Vehicles")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Add Configured Vehicle/i })).toBeInTheDocument();
+
+      // Verify active badge on first vehicle
+      expect(screen.getByText("Active")).toBeInTheDocument();
+
+      // Verify both vehicles rendered
+      expect(screen.getByText("2024 Toyota RAV4 Hybrid")).toBeInTheDocument();
+      expect(screen.getByText("2024 Honda Civic")).toBeInTheDocument();
+
+      // Click second vehicle row to select it
+      fireEvent.click(screen.getByText("2024 Honda Civic"));
+      expect(onSelect).toHaveBeenCalledWith("v-2");
+
+      // Click Add button
+      fireEvent.click(screen.getByRole("button", { name: /Add Configured Vehicle/i }));
+      expect(onAdd).toHaveBeenCalled();
+
+      // Click Delete button on second vehicle
+      const removeButtons = screen.getAllByRole("button", { name: /Delete/i });
+      fireEvent.click(removeButtons[0]);
+      expect(onDelete).toHaveBeenCalledWith("v-1");
     });
   });
 });

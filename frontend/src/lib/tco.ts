@@ -72,6 +72,13 @@ export interface TCOResult {
   yearly: YearlyBreakdown[];
 }
 
+export interface SavedVehicle {
+  id: string;
+  input: TCOInput;
+  result: TCOResult;
+  createdAt: number;
+}
+
 export function roundToCent(val: number): number {
   return Math.round(val * 100) / 100;
 }

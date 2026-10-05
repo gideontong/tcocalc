@@ -1,8 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Home from "./page";
 
 describe("Home Page Component", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("renders the tcocalc header, segmented tabs, and initial metrics", () => {
     render(<Home />);
     expect(screen.getByText("tcocalc")).toBeInTheDocument();
@@ -14,6 +18,7 @@ describe("Home Page Component", () => {
     expect(screen.getByRole("button", { name: /Vehicle Lease/i })).toBeInTheDocument();
     expect((screen.getByLabelText(/Analysis Horizon/i) as HTMLInputElement).value).toBe("10");
     expect(screen.getByLabelText("Progression Chart")).toBeInTheDocument();
+    expect(screen.getByText(/No vehicles added to comparison yet/i)).toBeInTheDocument();
   });
 
   it("switches to Cash Purchase mode and hides loan fields", () => {
@@ -53,5 +58,41 @@ describe("Home Page Component", () => {
     const priceInput = screen.getByLabelText(/Purchase Price/i) as HTMLInputElement;
     fireEvent.change(priceInput, { target: { value: "50000" } });
     expect(priceInput.value).toBe("50000");
+  });
+
+  it("adds configured vehicle to comparison table and switches between saved vehicles", () => {
+    render(<Home />);
+
+    // 1. Click "Add Configured Vehicle" to save first vehicle
+    const addBtn = screen.getByRole("button", { name: /Add Configured Vehicle/i });
+    fireEvent.click(addBtn);
+
+    // Verify first vehicle appears with active status in table
+    expect(screen.getByRole("table", { name: /Saved vehicles table/i })).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("2024 Toyota RAV4 Hybrid")).toBeInTheDocument();
+
+    // 2. Change vehicle name and powertrain to create second vehicle
+    const nameInput = screen.getByLabelText("Vehicle Name") as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: "2024 Tesla Model 3" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Electric" }));
+
+    // Click "Add Configured Vehicle" to save second vehicle
+    fireEvent.click(addBtn);
+
+    // Verify both vehicles exist in table
+    expect(screen.getByText("2024 Tesla Model 3")).toBeInTheDocument();
+
+    // 3. Switch back to first vehicle by clicking its row
+    fireEvent.click(screen.getByText("2024 Tesla Model 3"));
+    expect((screen.getByLabelText("Vehicle Name") as HTMLInputElement).value).toBe(
+      "2024 Tesla Model 3"
+    );
+
+    // 4. Remove a vehicle
+    const removeButtons = screen.getAllByRole("button", { name: /Delete/i });
+    fireEvent.click(removeButtons[0]);
+    // One vehicle remains
+    expect(screen.getAllByRole("button", { name: /Delete/i })).toHaveLength(1);
   });
 });
