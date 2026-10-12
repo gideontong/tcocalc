@@ -58,6 +58,7 @@ type TCOInput struct {
 	AnnualInsurance       float64         `json:"annualInsurance"`       // Estimated annual insurance cost
 	AnnualMaintenance     float64         `json:"annualMaintenance"`     // Estimated annual maintenance & tires
 	AnnualFees            float64         `json:"annualFees"`            // Annual registration, inspections, and taxes
+	SellAtEnd             bool            `json:"sellAtEnd"`             // Whether vehicle is sold/liquidated at end of horizon
 	DepreciationRate      float64         `json:"depreciationRate"`      // Annual value loss percentage, e.g. 15.0 for 15%
 }
 

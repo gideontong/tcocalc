@@ -149,6 +149,7 @@ func TestCalculateCashPurchase(t *testing.T) {
 		AnnualInsurance:   1200,
 		AnnualMaintenance: 600,
 		AnnualFees:        200,
+		SellAtEnd:         true,
 		DepreciationRate:  10.0, // 10% per year
 	}
 
@@ -171,7 +172,28 @@ func TestCalculateCashPurchase(t *testing.T) {
 		t.Fatalf("expected 3 yearly breakdowns, got %d", len(res.Yearly))
 	}
 	if res.ResidualValue <= 0 {
-		t.Errorf("expected positive residual value for cash purchase, got %f", res.ResidualValue)
+		t.Errorf("expected positive residual value when SellAtEnd is true, got %f", res.ResidualValue)
+	}
+	if res.Categories.Depreciation <= 0 {
+		t.Errorf("expected positive depreciation when SellAtEnd is true, got %f", res.Categories.Depreciation)
+	}
+
+	// Verify when SellAtEnd is false (default)
+	inputKeep := input
+	inputKeep.SellAtEnd = false
+	resKeep, err := Calculate(inputKeep)
+	if err != nil {
+		t.Fatalf("unexpected error when SellAtEnd is false: %v", err)
+	}
+	if resKeep.ResidualValue != 0 {
+		t.Errorf("expected 0 residual value when SellAtEnd is false, got %f", resKeep.ResidualValue)
+	}
+	if resKeep.Categories.Depreciation != 0 {
+		t.Errorf("expected 0 depreciation when SellAtEnd is false, got %f", resKeep.Categories.Depreciation)
+	}
+	if math.Abs(resKeep.NetCostOfOwnership-resKeep.TotalCostOfOwnership) > 0.01 {
+		t.Errorf("expected net cost (%f) to equal total outflow (%f) when not selling",
+			resKeep.NetCostOfOwnership, resKeep.TotalCostOfOwnership)
 	}
 }
 
@@ -187,11 +209,12 @@ func TestCalculateFinancedEV(t *testing.T) {
 		LoanInterestRate:      5.0,
 		OwnershipYears:        5,
 		AnnualMileage:         15000,
-		EfficiencyKWhPer100Mi: 28,  // 4200 kWh/yr
+		EfficiencyKWhPer100Mi: 28,   // 4200 kWh/yr
 		ElectricityRatePerKWh: 0.16, // $672/yr
 		AnnualInsurance:       1600,
 		AnnualMaintenance:     500,
 		AnnualFees:            350,
+		SellAtEnd:             true,
 		DepreciationRate:      15.0,
 	}
 

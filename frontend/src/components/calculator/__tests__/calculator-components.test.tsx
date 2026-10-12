@@ -148,7 +148,7 @@ describe("Calculator Modular Components", () => {
   });
 
   describe("UsageForm", () => {
-    it("renders electric fields and responds to Recalculate click", () => {
+    it("renders electric fields in lease mode, hides sellAtEnd, and responds to Recalculate click", () => {
       const onNumberChange = vi.fn();
       const onCalculate = vi.fn();
 
@@ -162,59 +162,98 @@ describe("Calculator Modular Components", () => {
 
       expect(screen.getByLabelText(/Efficiency \(kWh\/100mi\)/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Electricity Rate/i)).toBeInTheDocument();
+      expect(screen.queryByLabelText(/Sell vehicle at end of horizon/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Depreciation Rate/i)).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /Recalculate/i }));
       expect(onCalculate).toHaveBeenCalled();
     });
 
-    it("renders gas fields for gas powertrain", () => {
-      render(
+    it("renders gas fields and toggles Depreciation Rate based on sellAtEnd", () => {
+      const onBooleanChange = vi.fn();
+      const { rerender } = render(
         <UsageForm
-          input={sampleGasInput}
+          input={{ ...sampleGasInput, sellAtEnd: false }}
           onNumberFieldChange={vi.fn()}
+          onBooleanFieldChange={onBooleanChange}
           onCalculate={vi.fn()}
         />
       );
 
       expect(screen.getByLabelText(/Fuel Economy \(MPG\)/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Gas Price/i)).toBeInTheDocument();
+
+      const sellCheckbox = screen.getByLabelText(/Sell vehicle at end of horizon/i);
+      expect(sellCheckbox).not.toBeChecked();
+      expect(screen.queryByLabelText(/Depreciation Rate/i)).not.toBeInTheDocument();
+
+      fireEvent.click(sellCheckbox);
+      expect(onBooleanChange).toHaveBeenCalledWith("sellAtEnd", true);
+
+      rerender(
+        <UsageForm
+          input={{ ...sampleGasInput, sellAtEnd: true }}
+          onNumberFieldChange={vi.fn()}
+          onBooleanFieldChange={onBooleanChange}
+          onCalculate={vi.fn()}
+        />
+      );
+      expect(screen.getByLabelText(/Depreciation Rate/i)).toBeInTheDocument();
     });
   });
 
   describe("SummaryCards", () => {
-    it("renders metric values properly", () => {
-      const result = calculateTCO(sampleLoanInput);
-      render(<SummaryCards result={result} />);
+    it("renders metric values and adapts subtitles for sellAtEnd", () => {
+      const resultKeep = calculateTCO({ ...sampleLoanInput, sellAtEnd: false });
+      const { rerender } = render(<SummaryCards result={resultKeep} />);
 
       expect(screen.getByText("Monthly Average")).toBeInTheDocument();
       expect(screen.getByText("Cost Per Mile")).toBeInTheDocument();
       expect(screen.getByText("Net Ownership Cost")).toBeInTheDocument();
       expect(screen.getByText("Residual Value")).toBeInTheDocument();
+      expect(screen.getByText(/total out-of-pocket & remaining debt/i)).toBeInTheDocument();
+      expect(screen.getByText(/not selling at end/i)).toBeInTheDocument();
+
+      const resultSell = calculateTCO({ ...sampleLoanInput, sellAtEnd: true });
+      rerender(<SummaryCards result={resultSell} />);
+      expect(screen.getByText(/after vehicle liquidation/i)).toBeInTheDocument();
+      expect(screen.getByText(/estimated value after 10 yrs/i)).toBeInTheDocument();
     });
   });
 
   describe("BreakdownCard", () => {
-    it("renders category breakdown items", () => {
-      const result = calculateTCO(sampleLoanInput);
-      render(<BreakdownCard result={result} />);
+    it("omits Depreciation when not selling and includes it when sellAtEnd is true", () => {
+      const resultKeep = calculateTCO({ ...sampleLoanInput, sellAtEnd: false });
+      const { rerender } = render(<BreakdownCard result={resultKeep} />);
 
       expect(screen.getByText("Expense Category Breakdown")).toBeInTheDocument();
-      expect(screen.getByText("Depreciation")).toBeInTheDocument();
+      expect(screen.queryByText("Depreciation")).not.toBeInTheDocument();
       expect(screen.getByText("Financing Interest")).toBeInTheDocument();
       expect(screen.getByText("Fuel / Electricity")).toBeInTheDocument();
+
+      const resultSell = calculateTCO({ ...sampleLoanInput, sellAtEnd: true });
+      rerender(<BreakdownCard result={resultSell} />);
+      expect(screen.getByText("Depreciation")).toBeInTheDocument();
     });
   });
 
   describe("ScheduleTable", () => {
-    it("renders progression chart and table with yearly rows", () => {
-      const result = calculateTCO(sampleLoanInput);
-      render(<ScheduleTable result={result} />);
+    it("renders progression chart and conditionally displays Depreciation and Value End columns", () => {
+      const resultKeep = calculateTCO({ ...sampleLoanInput, sellAtEnd: false });
+      const { rerender } = render(<ScheduleTable result={resultKeep} />);
 
       expect(screen.getByText("Annual Progression Schedule")).toBeInTheDocument();
       expect(screen.getByLabelText("Progression Chart")).toBeInTheDocument();
       expect(screen.getByText("Loan Pay")).toBeInTheDocument();
+      expect(screen.queryByText("Depreciation")).not.toBeInTheDocument();
+      expect(screen.queryByText("Value End")).not.toBeInTheDocument();
       expect(screen.getByText("1")).toBeInTheDocument();
       expect(screen.getByText("10")).toBeInTheDocument();
+
+      const resultSell = calculateTCO({ ...sampleLoanInput, sellAtEnd: true });
+      rerender(<ScheduleTable result={resultSell} />);
+      expect(screen.getByText("Depreciation")).toBeInTheDocument();
+      expect(screen.getByText("Value End")).toBeInTheDocument();
     });
   });
 

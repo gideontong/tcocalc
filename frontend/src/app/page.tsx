@@ -188,6 +188,16 @@ export default function Home() {
     }
   };
 
+  const updateBooleanField = (field: keyof TCOInput, val: boolean) => {
+    const nextInput = { ...input, [field]: val };
+    try {
+      const nextResult = calculateTCO(nextInput);
+      syncVehicle(nextInput, nextResult);
+    } catch {
+      setInput(nextInput);
+    }
+  };
+
   const updateLeaseField = (field: keyof NonNullable<TCOInput["lease"]>, val: string | number | boolean) => {
     if (!input.lease) return;
     const nextLease = { ...input.lease, [field]: val };
@@ -259,6 +269,7 @@ export default function Home() {
             <UsageForm
               input={input}
               onNumberFieldChange={updateNumberField}
+              onBooleanFieldChange={updateBooleanField}
               onCalculate={handleCalculate}
             />
           </div>

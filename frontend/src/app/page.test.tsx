@@ -60,6 +60,22 @@ describe("Home Page Component", () => {
     expect(priceInput.value).toBe("50000");
   });
 
+  it("toggles Sell vehicle at end of horizon and reveals Depreciation Rate", () => {
+    render(<Home />);
+
+    // Default: sellAtEnd is unchecked and Depreciation Rate is hidden
+    const sellCheckbox = screen.getByLabelText(/Sell vehicle at end of horizon/i) as HTMLInputElement;
+    expect(sellCheckbox.checked).toBe(false);
+    expect(screen.queryByLabelText(/Depreciation Rate/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/not selling at end/i)).toBeInTheDocument();
+
+    // Toggle sellAtEnd ON
+    fireEvent.click(sellCheckbox);
+    expect(sellCheckbox.checked).toBe(true);
+    expect(screen.getByLabelText(/Depreciation Rate/i)).toBeInTheDocument();
+    expect(screen.getByText(/after vehicle liquidation/i)).toBeInTheDocument();
+  });
+
   it("adds configured vehicle to comparison table and switches between saved vehicles", () => {
     render(<Home />);
 

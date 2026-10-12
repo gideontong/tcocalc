@@ -21,6 +21,7 @@ describe("TCO Calculation Engine", () => {
       annualInsurance: 1400,
       annualMaintenance: 700,
       annualFees: 250,
+      sellAtEnd: true,
       depreciationRate: 15.0,
     };
 
@@ -32,6 +33,12 @@ describe("TCO Calculation Engine", () => {
     expect(res.monthlyAverageCost).toBeGreaterThan(0);
     expect(res.costPerMile).toBeGreaterThan(0);
     expect(res.yearly.length).toBe(5);
+
+    // When sellAtEnd is false (not selling at end of horizon)
+    const resKeep = calculateTCO({ ...input, sellAtEnd: false });
+    expect(resKeep.residualValue).toBe(0);
+    expect(resKeep.categories.depreciation).toBe(0);
+    expect(resKeep.netCostOfOwnership).toBe(resKeep.totalCostOfOwnership);
   });
 
   it("calculates financed electric vehicle accurately", () => {

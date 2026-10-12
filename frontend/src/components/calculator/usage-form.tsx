@@ -8,10 +8,16 @@ import { TCOInput } from "@/lib/tco";
 export interface UsageFormProps {
   input: TCOInput;
   onNumberFieldChange: (field: keyof TCOInput, val: string) => void;
+  onBooleanFieldChange?: (field: keyof TCOInput, val: boolean) => void;
   onCalculate: () => void;
 }
 
-export function UsageForm({ input, onNumberFieldChange, onCalculate }: UsageFormProps) {
+export function UsageForm({
+  input,
+  onNumberFieldChange,
+  onBooleanFieldChange,
+  onCalculate,
+}: UsageFormProps) {
   return (
     <Card>
       <CardHeader>
@@ -122,18 +128,34 @@ export function UsageForm({ input, onNumberFieldChange, onCalculate }: UsageForm
               onChange={(e) => onNumberFieldChange("annualFees", e.target.value)}
             />
           </div>
+          {input.acquisition !== "lease" && (
+            <div className="flex items-center space-x-2 pt-6">
+              <input
+                id="sellAtEnd"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={Boolean(input.sellAtEnd)}
+                onChange={(e) => onBooleanFieldChange?.("sellAtEnd", e.target.checked)}
+              />
+              <Label htmlFor="sellAtEnd" className="text-xs font-normal">
+                Sell vehicle at end of horizon
+              </Label>
+            </div>
+          )}
+        </div>
+
+        {input.acquisition !== "lease" && Boolean(input.sellAtEnd) && (
           <div>
             <Label htmlFor="depreciation">Depreciation Rate (%/yr)</Label>
             <Input
               id="depreciation"
               type="number"
               step="0.5"
-              disabled={input.acquisition === "lease" && !input.lease?.buyoutAtEnd}
               value={input.depreciationRate}
               onChange={(e) => onNumberFieldChange("depreciationRate", e.target.value)}
             />
           </div>
-        </div>
+        )}
 
         <Button className="w-full mt-4" onClick={onCalculate}>
           Recalculate

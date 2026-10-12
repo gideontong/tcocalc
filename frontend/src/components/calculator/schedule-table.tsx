@@ -19,6 +19,12 @@ export interface ScheduleTableProps {
 }
 
 export function ScheduleTable({ result }: ScheduleTableProps) {
+  const showDepreciation = result.acquisition === "lease" || Boolean(result.input.sellAtEnd);
+  const showValuation =
+    result.acquisition === "lease"
+      ? Boolean(result.input.lease?.buyoutAtEnd)
+      : Boolean(result.input.sellAtEnd);
+
   let cumulative = 0;
   const chartData = result.yearly.map((row) => {
     cumulative += row.totalOutflow;
@@ -26,7 +32,7 @@ export function ScheduleTable({ result }: ScheduleTableProps) {
       name: `Yr ${row.year}`,
       year: row.year,
       "Cumulative Spend": Math.round(cumulative),
-      "Vehicle Value": Math.round(row.endingVehicleValue),
+      ...(showValuation ? { "Vehicle Value": Math.round(row.endingVehicleValue) } : {}),
     };
   });
 
@@ -35,7 +41,9 @@ export function ScheduleTable({ result }: ScheduleTableProps) {
       <CardHeader>
         <CardTitle>Annual Progression Schedule</CardTitle>
         <CardDescription>
-          Year-by-year trajectory of cumulative spend versus vehicle valuation.
+          {showValuation
+            ? "Year-by-year trajectory of cumulative spend versus vehicle valuation."
+            : "Year-by-year trajectory of cumulative ownership spend."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -70,14 +78,16 @@ export function ScheduleTable({ result }: ScheduleTableProps) {
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
               />
-              <Line
-                type="monotone"
-                dataKey="Vehicle Value"
-                stroke="#10b981"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
+              {showValuation && (
+                <Line
+                  type="monotone"
+                  dataKey="Vehicle Value"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -88,22 +98,24 @@ export function ScheduleTable({ result }: ScheduleTableProps) {
             <thead className="border-b text-slate-500">
               <tr>
                 <th className="py-2">Yr</th>
-                <th>Depreciation</th>
+                {showDepreciation && <th>Depreciation</th>}
                 <th>{result.acquisition === "lease" ? "Lease Pay" : "Loan Pay"}</th>
                 <th>Energy</th>
                 <th>Insurance</th>
-                <th>Value End</th>
+                {showValuation && <th>Value End</th>}
               </tr>
             </thead>
             <tbody>
               {result.yearly.map((row) => (
                 <tr key={row.year} className="border-b last:border-0 hover:bg-slate-50/50">
                   <td className="py-2 font-medium">{row.year}</td>
-                  <td>${row.depreciationCost.toFixed(2)}</td>
+                  {showDepreciation && <td>${row.depreciationCost.toFixed(2)}</td>}
                   <td>${(row.leasePayment ?? row.loanPayment).toFixed(2)}</td>
                   <td>${row.fuelOrEnergyCost.toFixed(2)}</td>
                   <td>${row.insuranceCost.toFixed(2)}</td>
-                  <td className="font-medium">${row.endingVehicleValue.toFixed(2)}</td>
+                  {showValuation && (
+                    <td className="font-medium">${row.endingVehicleValue.toFixed(2)}</td>
+                  )}
                 </tr>
               ))}
             </tbody>

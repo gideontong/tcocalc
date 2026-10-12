@@ -23,7 +23,7 @@ When working with Node.js and npm in this repository:
 
 ## 2. Planning & Specification Guidelines
 
-All major features, architectural decisions, and initialization plans must be documented under `docs/specs/`:
+Specifications, architectural decisions, and implementation plans should **only** be written to `docs/specs/` when the user explicitly gives the directive to store them there (do not create spec files automatically):
 
 - **File Naming Pattern**: `docs/specs/YYYY-MM-DD-<topic>.md` (e.g., `2026-10-02-initialization.md`).
 - **Relative Path Convention**: All Markdown documentation and cross-references must use relative paths relative to the repository root (e.g., `docs/specs/...`) rather than machine-specific absolute paths.

@@ -33,6 +33,7 @@ export interface TCOInput {
   annualInsurance: number;
   annualMaintenance: number;
   annualFees: number;
+  sellAtEnd?: boolean;
   depreciationRate: number;
 }
 
@@ -153,7 +154,8 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
   }
 
   const yearly: YearlyBreakdown[] = [];
-  let currentValue = input.purchasePrice;
+  const sellAtEnd = Boolean(input.sellAtEnd);
+  let currentValue = sellAtEnd ? input.purchasePrice : 0;
   const deprRate = input.depreciationRate / 100;
   let loanBalance = principal;
 
@@ -166,11 +168,14 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
 
   let monthCounter = 0;
   for (let y = 0; y < input.ownershipYears; y++) {
-    const startValue = currentValue;
-    const endValue = startValue * (1 - deprRate);
-    const yearDepr = roundToCent(startValue - endValue);
-    currentValue = roundToCent(endValue);
-    cumulativeDepr += yearDepr;
+    let yearDepr = 0;
+    if (sellAtEnd) {
+      const startValue = currentValue;
+      const endValue = startValue * (1 - deprRate);
+      yearDepr = roundToCent(startValue - endValue);
+      currentValue = roundToCent(endValue);
+      cumulativeDepr += yearDepr;
+    }
 
     let yearLoanPayment = 0;
     let yearLoanInterest = 0;

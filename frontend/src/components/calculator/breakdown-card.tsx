@@ -7,11 +7,16 @@ export interface BreakdownCardProps {
 }
 
 export function BreakdownCard({ result }: BreakdownCardProps) {
+  const showDepreciation = result.acquisition === "lease" || Boolean(result.input.sellAtEnd);
   const breakdownItems = [
-    {
-      label: result.acquisition === "lease" ? "Depreciation (Base Lease)" : "Depreciation",
-      amount: result.categories.depreciation,
-    },
+    ...(showDepreciation
+      ? [
+          {
+            label: result.acquisition === "lease" ? "Depreciation (Base Lease)" : "Depreciation",
+            amount: result.categories.depreciation,
+          },
+        ]
+      : []),
     {
       label: result.acquisition === "lease" ? "Rent Charges (Finance)" : "Financing Interest",
       amount: result.categories.financingInterest,

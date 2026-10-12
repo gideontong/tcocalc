@@ -17,6 +17,7 @@ docs/specs/YYYY-MM-DD-<title>.md
 | [2026-10-02-initialization.md](2026-10-02-initialization.md)                                 | Completed | Initial project architecture, monorepo structure, Go core engine (backend API + CLI), Next.js frontend with shadcn/ui, testing, and linting guidelines. |
 | [2026-10-02-acquisition-modes.md](2026-10-02-acquisition-modes.md)                           | Completed | Specification and plan for toggling acquisition details between Cash Purchase (flat price), Loan Financing (amortization), and Vehicle Lease.           |
 | [2026-10-05-multi-vehicle-comparison-table.md](2026-10-05-multi-vehicle-comparison-table.md) | Completed | Specification for saving configured vehicles, managing them in a comparison table, and switching between views with live synchronization.               |
+| [2026-10-12-optional-depreciation-resale.md](2026-10-12-optional-depreciation-resale.md)     | Completed | Specification for making vehicle depreciation optional by choosing whether to sell the vehicle at the end of the analysis horizon.                      |
 
 ## Updating This Index
 

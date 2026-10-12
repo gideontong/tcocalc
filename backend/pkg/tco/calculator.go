@@ -59,7 +59,10 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 
 	// Year-by-year progression simulation
 	yearly := make([]YearlyBreakdown, in.OwnershipYears)
-	currentValue := in.PurchasePrice
+	currentValue := 0.0
+	if in.SellAtEnd {
+		currentValue = in.PurchasePrice
+	}
 	deprRate := in.DepreciationRate / 100.0
 	loanBalance := principal
 
@@ -75,12 +78,15 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 	for y := 0; y < in.OwnershipYears; y++ {
 		yearNumber := y + 1
 
-		// Depreciation for this year
-		startValue := currentValue
-		endValue := startValue * (1.0 - deprRate)
-		yearDepreciation := roundToCent(startValue - endValue)
-		currentValue = roundToCent(endValue)
-		cumulativeDepreciation += yearDepreciation
+		// Depreciation for this year (only if selling vehicle at end of horizon)
+		var yearDepreciation float64
+		if in.SellAtEnd {
+			startValue := currentValue
+			endValue := startValue * (1.0 - deprRate)
+			yearDepreciation = roundToCent(startValue - endValue)
+			currentValue = roundToCent(endValue)
+			cumulativeDepreciation += yearDepreciation
+		}
 
 		// Loan amortization for this year (12 months)
 		var yearLoanPayment float64

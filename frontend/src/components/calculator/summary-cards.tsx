@@ -42,9 +42,13 @@ export function SummaryCards({ result }: SummaryCardsProps) {
             ${result.netCostOfOwnership.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {result.acquisition === "lease" && !result.input.lease?.buyoutAtEnd
-              ? "total lease payments & upkeep"
-              : "after vehicle liquidation"}
+            {result.acquisition === "lease"
+              ? result.input.lease?.buyoutAtEnd
+                ? "after vehicle liquidation"
+                : "total lease payments & upkeep"
+              : result.input.sellAtEnd
+                ? "after vehicle liquidation"
+                : "total out-of-pocket & remaining debt"}
           </p>
         </CardContent>
       </Card>
@@ -58,9 +62,13 @@ export function SummaryCards({ result }: SummaryCardsProps) {
             ${result.residualValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {result.acquisition === "lease" && !result.input.lease?.buyoutAtEnd
-              ? "vehicle returned ($0 equity)"
-              : `estimated value after ${result.input.ownershipYears} yrs`}
+            {result.acquisition === "lease"
+              ? result.input.lease?.buyoutAtEnd
+                ? `estimated value after ${result.input.ownershipYears} yrs`
+                : "vehicle returned ($0 equity)"
+              : result.input.sellAtEnd
+                ? `estimated value after ${result.input.ownershipYears} yrs`
+                : "not selling at end ($0 liquidation)"}
           </p>
         </CardContent>
       </Card>
