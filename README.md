@@ -99,6 +99,14 @@ You can override default ports using environment variables:
 FRONTEND_PORT=3000 BACKEND_PORT=8080 ./start.sh
 ```
 
+### Deploying to GitHub Pages
+
+The web calculator runs entirely client-side with zero server dependencies and exports as static HTML:
+
+- A GitHub Actions workflow is provided at `.github/workflows/deploy.yml`.
+- In your repository settings under **Settings > Pages**, set **Source** to **GitHub Actions**.
+- Pushes to `master` or `main` automatically build and deploy the application to GitHub Pages.
+
 ---
 
 ## Monorepo Commands

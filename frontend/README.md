@@ -95,9 +95,30 @@ npm run test:watch
 # Run Next.js and ESLint checks
 npm run lint
 
-# Build production bundle
+# Build production bundle (static HTML export into `out/`)
 npm run build
 
 # Start production server
 npm run start
 ```
+
+---
+
+## Static Export & GitHub Pages Deployment
+
+The frontend runs 100% in the client browser with zero server runtime dependencies. Next.js is configured with `output: "export"` in `next.config.ts`, generating a pure static bundle in `out/`.
+
+### Automated GitHub Pages Workflow
+
+A GitHub Actions workflow is provided at `.github/workflows/deploy.yml`. When pushed to `master` or `main`:
+
+1. It checks out the repository and installs dependencies via `npm ci`.
+2. Automatically determines the repository base path (or custom domain) via `actions/configure-pages`.
+3. Runs `npm run build` to generate the static site in `frontend/out/`.
+4. Deploys the bundle directly to GitHub Pages.
+
+To enable GitHub Pages in your repository:
+
+1. Navigate to **Settings > Pages** on GitHub.
+2. Under **Build and deployment > Source**, select **GitHub Actions**.
+3. Push to `master` or trigger the workflow manually from the **Actions** tab.
