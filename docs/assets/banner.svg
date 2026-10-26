@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070a12" />
+      <stop offset="50%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#020409" />
+    </linearGradient>
+
+    <!-- Radial Glows -->
+    <radialGradient id="glow-curve" cx="75%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16" />
+      <stop offset="50%" stop-color="#2563eb" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#020409" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="glow-text" cx="20%" cy="55%" r="40%">
+      <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#020409" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Technical Matrix Grid -->
+    <pattern id="matrix" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="1" fill="#334155" fill-opacity="0.28" />
+    </pattern>
+
+    <!-- Chart Filled Area Gradient -->
+    <linearGradient id="curve-area" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.32" />
+      <stop offset="60%" stop-color="#0284c7" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Trajectory Stroke Gradient -->
+    <linearGradient id="curve-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="45%" stop-color="#60a5fa" />
+      <stop offset="80%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#a7f3d0" />
+    </linearGradient>
+
+    <!-- Typography Gradient -->
+    <linearGradient id="text-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="70%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Outer Background -->
+  <rect width="1200" height="320" rx="16" fill="url(#bg)" />
+  <rect width="1200" height="320" rx="16" fill="url(#glow-curve)" />
+  <rect width="1200" height="320" rx="16" fill="url(#glow-text)" />
+  <rect width="1200" height="320" rx="16" fill="url(#matrix)" />
+  <rect width="1198" height="318" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-opacity="0.45" stroke-width="1.5" />
+
+  <!-- Geometric Financial Chart Axes / Gridlines -->
+  <g stroke="#334155" stroke-opacity="0.22" stroke-width="1">
+    <line x1="420" y1="75" x2="1140" y2="75" stroke-dasharray="4 8" />
+    <line x1="420" y1="135" x2="1140" y2="135" stroke-dasharray="4 8" />
+    <line x1="420" y1="195" x2="1140" y2="195" stroke-dasharray="4 8" />
+    <line x1="420" y1="255" x2="1140" y2="255" stroke-width="1.2" stroke-opacity="0.4" />
+    <line x1="560" y1="55" x2="560" y2="255" stroke-dasharray="4 8" />
+    <line x1="720" y1="55" x2="720" y2="255" stroke-dasharray="4 8" />
+    <line x1="880" y1="55" x2="880" y2="255" stroke-dasharray="4 8" />
+    <line x1="1040" y1="55" x2="1040" y2="255" stroke-dasharray="4 8" />
+  </g>
+
+  <!-- Chart Filled Area -->
+  <path d="M 420 255 
+           C 530 245, 600 215, 700 175 
+           C 780 145, 840 125, 900 128
+           C 950 130, 1020 165, 1140 185 
+           L 1140 255 Z" 
+        fill="url(#curve-area)" />
+
+  <!-- Main Financial Trajectory Curve -->
+  <path d="M 420 255 
+           C 530 245, 600 215, 700 175 
+           C 780 145, 840 125, 900 128
+           C 950 130, 1020 165, 1140 185" 
+        fill="none" stroke="url(#curve-stroke)" stroke-width="3.5" stroke-linecap="round" />
+
+  <!-- Luminous Data Nodes along the Curve -->
+  <circle cx="420" cy="255" r="4" fill="#38bdf8" />
+  <circle cx="560" cy="230" r="4.5" fill="#38bdf8" stroke="#0369a1" stroke-width="1.5" />
+  <circle cx="700" cy="175" r="5" fill="#60a5fa" stroke="#1d4ed8" stroke-width="2" />
+  <circle cx="840" cy="128" r="5" fill="#34d399" stroke="#065f46" stroke-width="2" />
+  <circle cx="1000" cy="165" r="4.5" fill="#34d399" stroke="#047857" stroke-width="1.5" />
+  <circle cx="1140" cy="185" r="5" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" />
+
+  <!-- Aerodynamic Vehicle Silhouette at Apex -->
+  <g transform="translate(795, 76) scale(1.2)" filter="url(#shadow)">
+    <!-- Car Underglow Floor Glow -->
+    <ellipse cx="78" cy="42" rx="72" ry="10" fill="#38bdf8" opacity="0.3" />
+
+    <!-- Wheels -->
+    <g transform="translate(30, 32)">
+      <circle cx="8" cy="8" r="8.5" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" />
+      <circle cx="8" cy="8" r="4" fill="#1e293b" stroke="#94a3b8" stroke-width="0.75" />
+      <circle cx="8" cy="8" r="1.5" fill="#38bdf8" />
+    </g>
+    <g transform="translate(125, 32)">
+      <circle cx="8" cy="8" r="8.5" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" />
+      <circle cx="8" cy="8" r="4" fill="#1e293b" stroke="#94a3b8" stroke-width="0.75" />
+      <circle cx="8" cy="8" r="1.5" fill="#38bdf8" />
+    </g>
+
+    <!-- Aerodynamic Chassis Silhouette -->
+    <path d="M 6 36 
+             C 16 30, 24 28, 32 30 
+             C 40 32, 48 22, 62 14 
+             C 76 6, 104 6, 124 12 
+             C 138 16, 150 24, 164 32 
+             C 170 35, 172 38, 170 40 
+             L 142 40 
+             C 140 32, 130 30, 122 32 
+             L 50 32 
+             C 48 30, 38 30, 32 34 
+             L 6 36 Z" 
+          fill="#0c1322" stroke="#38bdf8" stroke-width="2" />
+
+    <!-- Sleek Window Glass Contour -->
+    <path d="M 64 16 C 78 8, 104 8, 122 13 C 132 17, 140 23, 146 28 L 76 28 Z" 
+          fill="#38bdf8" fill-opacity="0.22" stroke="#93c5fd" stroke-width="0.75" />
+
+    <!-- Forward Laser Glint -->
+    <circle cx="167" cy="35" r="2.5" fill="#34d399" />
+    <!-- Subtle Taillight Accent -->
+    <rect x="6" y="33" width="4" height="2.5" rx="1.25" fill="#f43f5e" />
+  </g>
+
+  <!-- Brand Typographic Lockup (Centered vertically on the left) -->
+  <g transform="translate(100, 182)">
+    <text font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+          font-weight="900" 
+          font-size="80" 
+          fill="url(#text-grad)" 
+          letter-spacing="-0.04em">
+      tcocalc<tspan fill="#38bdf8">.</tspan>
+    </text>
+  </g>
+</svg>

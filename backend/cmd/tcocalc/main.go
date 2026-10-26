@@ -32,6 +32,7 @@ var (
 	maintenanceFlag  float64
 	feesFlag         float64
 	depreciation     float64
+	sellAtEndFlag    bool
 
 	// Lease-specific flags
 	leaseMonthsFlag   int
@@ -78,6 +79,7 @@ Cash Purchase, Loan Financing, and Vehicle Lease options.`,
 	rootCmd.Flags().Float64Var(&maintenanceFlag, "maintenance", 800, "Annual maintenance and tires ($)")
 	rootCmd.Flags().Float64Var(&feesFlag, "fees", 300, "Annual registration and fees ($)")
 	rootCmd.Flags().Float64Var(&depreciation, "depreciation-rate", 15.0, "Annual depreciation rate (%)")
+	rootCmd.Flags().BoolVar(&sellAtEndFlag, "sell-at-end", false, "Sell vehicle at end of ownership horizon (accounts for resale value and depreciation)")
 
 	// Lease flags
 	rootCmd.Flags().IntVar(&leaseMonthsFlag, "lease-months", 36, "Lease term in months (e.g. 24, 36, 48)")
@@ -126,6 +128,7 @@ func runCalculate(cmd *cobra.Command, args []string) error {
 			AnnualInsurance:       insuranceFlag,
 			AnnualMaintenance:     maintenanceFlag,
 			AnnualFees:            feesFlag,
+			SellAtEnd:             sellAtEndFlag,
 			DepreciationRate:      depreciation,
 		}
 
