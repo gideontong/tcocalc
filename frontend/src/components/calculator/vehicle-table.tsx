@@ -1,23 +1,27 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SavedVehicle } from "@/lib/tco";
+import { SavedVehicle, VEHICLE_PALETTE } from "@/lib/tco";
 import { cn } from "@/lib/utils";
 
 export interface VehicleTableProps {
   vehicles: SavedVehicle[];
   selectedId: string | null;
+  comparedIds?: string[];
   onSelectVehicle: (id: string) => void;
   onAddVehicle: () => void;
   onDeleteVehicle: (id: string) => void;
+  onToggleCompare?: (id: string) => void;
 }
 
 export function VehicleTable({
   vehicles,
   selectedId,
+  comparedIds,
   onSelectVehicle,
   onAddVehicle,
   onDeleteVehicle,
+  onToggleCompare,
 }: VehicleTableProps) {
   return (
     <Card>
@@ -47,6 +51,7 @@ export function VehicleTable({
             <table className="w-full text-xs text-left" aria-label="Saved vehicles table">
               <thead className="border-b text-slate-500">
                 <tr>
+                  <th className="py-2.5 px-3 w-12 text-center">Compare</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3">Vehicle Name</th>
                   <th className="py-2.5 px-3">Powertrain</th>
@@ -57,8 +62,10 @@ export function VehicleTable({
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map((v) => {
+                {vehicles.map((v, index) => {
                   const isSelected = v.id === selectedId;
+                  const isCompared = comparedIds ? comparedIds.includes(v.id) : true;
+                  const color = VEHICLE_PALETTE[index % VEHICLE_PALETTE.length];
                   return (
                     <tr
                       key={v.id}
@@ -70,6 +77,15 @@ export function VehicleTable({
                           : "hover:bg-slate-50/70 dark:hover:bg-slate-900/50"
                       )}
                     >
+                      <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Compare ${v.input.vehicleName || "vehicle"}`}
+                          className="h-3.5 w-3.5 rounded border-gray-300 cursor-pointer accent-primary"
+                          checked={isCompared}
+                          onChange={() => onToggleCompare?.(v.id)}
+                        />
+                      </td>
                       <td className="py-2.5 px-3">
                         {isSelected ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-primary text-primary-foreground">
@@ -80,7 +96,15 @@ export function VehicleTable({
                         )}
                       </td>
                       <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-slate-100">
-                        {v.input.vehicleName || "Untitled Vehicle"}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                            style={{ backgroundColor: color }}
+                            title={`Line color: ${v.input.vehicleName || "Vehicle"}`}
+                            aria-hidden="true"
+                          />
+                          <span>{v.input.vehicleName || "Untitled Vehicle"}</span>
+                        </div>
                       </td>
                       <td className="py-2.5 px-3 capitalize">{v.input.powertrain}</td>
                       <td className="py-2.5 px-3 capitalize">{v.input.acquisition}</td>

@@ -255,6 +255,39 @@ describe("Calculator Modular Components", () => {
       expect(screen.getByText("Depreciation")).toBeInTheDocument();
       expect(screen.getByText("Value End")).toBeInTheDocument();
     });
+
+    it("renders multi-vehicle overlay chart with metric toggles when multiple vehicles are compared", () => {
+      const v1: SavedVehicle = {
+        id: "v-1",
+        input: sampleLoanInput,
+        result: calculateTCO(sampleLoanInput),
+        createdAt: 1000,
+      };
+      const v2: SavedVehicle = {
+        id: "v-2",
+        input: sampleGasInput,
+        result: calculateTCO(sampleGasInput),
+        createdAt: 2000,
+      };
+
+      render(<ScheduleTable result={v1.result} comparedVehicles={[v1, v2]} />);
+
+      // Verify multi-vehicle description and metric toggle buttons
+      expect(
+        screen.getByText(/Multi-vehicle comparison of cumulative cash outflow trajectories/i)
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cumulative Spend" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Vehicle Value" })).toBeInTheDocument();
+
+      // Click Vehicle Value toggle
+      fireEvent.click(screen.getByRole("button", { name: "Vehicle Value" }));
+      expect(
+        screen.getByText(/Multi-vehicle comparison of vehicle asset valuations over time/i)
+      ).toBeInTheDocument();
+
+      // Verify active vehicle detailed table header
+      expect(screen.getByText(/Detailed Annual Breakdown:/i)).toBeInTheDocument();
+    });
   });
 
   describe("VehicleTable", () => {
@@ -273,10 +306,11 @@ describe("Calculator Modular Components", () => {
       expect(screen.getByRole("button", { name: /Add Configured Vehicle/i })).toBeInTheDocument();
     });
 
-    it("renders saved vehicle rows and handles selection, addition, and deletion", () => {
+    it("renders saved vehicle rows and handles selection, addition, deletion, and comparison toggle", () => {
       const onSelect = vi.fn();
       const onAdd = vi.fn();
       const onDelete = vi.fn();
+      const onToggleCompare = vi.fn();
 
       const sampleVehicles: SavedVehicle[] = [
         {
@@ -297,9 +331,11 @@ describe("Calculator Modular Components", () => {
         <VehicleTable
           vehicles={sampleVehicles}
           selectedId="v-1"
+          comparedIds={["v-1"]}
           onSelectVehicle={onSelect}
           onAddVehicle={onAdd}
           onDeleteVehicle={onDelete}
+          onToggleCompare={onToggleCompare}
         />
       );
 
@@ -313,6 +349,16 @@ describe("Calculator Modular Components", () => {
       // Verify both vehicles rendered
       expect(screen.getByText("2024 Toyota RAV4 Hybrid")).toBeInTheDocument();
       expect(screen.getByText("2024 Honda Civic")).toBeInTheDocument();
+
+      // Verify comparison checkboxes
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes).toHaveLength(2);
+      expect(checkboxes[0]).toBeChecked();
+      expect(checkboxes[1]).not.toBeChecked();
+
+      // Toggle comparison on second vehicle
+      fireEvent.click(checkboxes[1]);
+      expect(onToggleCompare).toHaveBeenCalledWith("v-2");
 
       // Click second vehicle row to select it
       fireEvent.click(screen.getByText("2024 Honda Civic"));

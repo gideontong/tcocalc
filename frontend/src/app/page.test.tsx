@@ -105,10 +105,16 @@ describe("Home Page Component", () => {
       "2024 Tesla Model 3"
     );
 
+    // Multi-vehicle comparison is enabled on the schedule chart
+    expect(screen.getByRole("button", { name: "Cumulative Spend" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vehicle Value" })).toBeInTheDocument();
+
     // 4. Remove a vehicle
     const removeButtons = screen.getAllByRole("button", { name: /Delete/i });
     fireEvent.click(removeButtons[0]);
     // One vehicle remains
     expect(screen.getAllByRole("button", { name: /Delete/i })).toHaveLength(1);
+    // Reverts to single-vehicle mode
+    expect(screen.queryByRole("button", { name: "Cumulative Spend" })).not.toBeInTheDocument();
   });
 });

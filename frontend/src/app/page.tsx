@@ -24,6 +24,7 @@ const STORAGE_KEY = "tcocalc_saved_vehicles";
 export default function Home() {
   const [vehicles, setVehicles] = React.useState<SavedVehicle[]>([]);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [comparedIds, setComparedIds] = React.useState<string[]>([]);
   const [input, setInput] = React.useState<TCOInput>(DEFAULT_TCO_INPUT);
   const [result, setResult] = React.useState<TCOResult>(() => calculateTCO(DEFAULT_TCO_INPUT));
 
@@ -38,6 +39,7 @@ export default function Home() {
           setSelectedId(parsed[0].id);
           setInput(parsed[0].input);
           setResult(parsed[0].result);
+          setComparedIds(parsed.map((v) => v.id));
         }
       }
     } catch (err) {
@@ -86,6 +88,7 @@ export default function Home() {
       const nextVehicles = [newVehicle];
       setVehicles(nextVehicles);
       setSelectedId(id);
+      setComparedIds([id]);
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(nextVehicles));
       } catch {
@@ -106,6 +109,7 @@ export default function Home() {
       const nextVehicles = [...vehicles, newVehicle];
       setVehicles(nextVehicles);
       setSelectedId(id);
+      setComparedIds((prev) => [...prev, id]);
       setInput(newVehicleInput);
       setResult(newVehicleResult);
       try {
@@ -119,6 +123,7 @@ export default function Home() {
   const handleDeleteVehicle = (id: string) => {
     const nextVehicles = vehicles.filter((v) => v.id !== id);
     setVehicles(nextVehicles);
+    setComparedIds((prev) => prev.filter((item) => item !== id));
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextVehicles));
     } catch {
@@ -134,6 +139,12 @@ export default function Home() {
         setSelectedId(null);
       }
     }
+  };
+
+  const handleToggleCompare = (id: string) => {
+    setComparedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   const setAcquisitionMode = (mode: AcquisitionType) => {
@@ -249,9 +260,11 @@ export default function Home() {
         <VehicleTable
           vehicles={vehicles}
           selectedId={selectedId}
+          comparedIds={comparedIds}
           onSelectVehicle={handleSelectVehicle}
           onAddVehicle={handleAddVehicle}
           onDeleteVehicle={handleDeleteVehicle}
+          onToggleCompare={handleToggleCompare}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -278,7 +291,10 @@ export default function Home() {
           <div className="lg:col-span-6 space-y-6">
             <SummaryCards result={result} />
             <BreakdownCard result={result} />
-            <ScheduleTable result={result} />
+            <ScheduleTable
+              result={result}
+              comparedVehicles={vehicles.filter((v) => comparedIds.includes(v.id))}
+            />
           </div>
         </div>
       </main>
