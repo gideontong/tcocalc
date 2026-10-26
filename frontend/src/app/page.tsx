@@ -17,6 +17,7 @@ import {
   BreakdownCard,
   ScheduleTable,
   VehicleTable,
+  Navbar,
 } from "@/components/calculator";
 
 const STORAGE_KEY = "tcocalc_saved_vehicles";
@@ -245,17 +246,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
-      <main className="max-w-6xl mx-auto space-y-8">
-        <header className="border-b pb-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-            tcocalc
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Total Cost of Ownership (TCO) calculator for driving a vehicle across Cash, Loan, and Lease options.
-          </p>
-        </header>
-
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
+      <Navbar />
+      <main className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
         {/* Saved Vehicles Comparison Table */}
         <VehicleTable
           vehicles={vehicles}

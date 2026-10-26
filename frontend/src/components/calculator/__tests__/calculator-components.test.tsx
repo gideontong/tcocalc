@@ -8,6 +8,7 @@ import {
   BreakdownCard,
   ScheduleTable,
   VehicleTable,
+  Navbar,
 } from "../index";
 import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
 import { calculateTCO, TCOInput, SavedVehicle } from "@/lib/tco";
@@ -372,6 +373,41 @@ describe("Calculator Modular Components", () => {
       const removeButtons = screen.getAllByRole("button", { name: /Delete/i });
       fireEvent.click(removeButtons[0]);
       expect(onDelete).toHaveBeenCalledWith("v-1");
+    });
+  });
+
+  describe("Navbar", () => {
+    beforeEach(() => {
+      localStorage.clear();
+      document.documentElement.classList.remove("dark");
+    });
+
+    it("renders brand logo, title, and 3-state theme controls", () => {
+      render(<Navbar />);
+
+      expect(screen.getByText("tcocalc")).toBeInTheDocument();
+      expect(screen.getByAltText("tcocalc logo")).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: /System theme/i })).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: /Light theme/i })).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: /Dark theme/i })).toBeInTheDocument();
+    });
+
+    it("toggles dark and light mode and persists to localStorage", () => {
+      render(<Navbar />);
+
+      const darkBtn = screen.getByRole("radio", { name: /Dark theme/i });
+      fireEvent.click(darkBtn);
+      expect(document.documentElement.classList.contains("dark")).toBe(true);
+      expect(localStorage.getItem("tcocalc_theme")).toBe("dark");
+
+      const lightBtn = screen.getByRole("radio", { name: /Light theme/i });
+      fireEvent.click(lightBtn);
+      expect(document.documentElement.classList.contains("dark")).toBe(false);
+      expect(localStorage.getItem("tcocalc_theme")).toBe("light");
+
+      const systemBtn = screen.getByRole("radio", { name: /System theme/i });
+      fireEvent.click(systemBtn);
+      expect(localStorage.getItem("tcocalc_theme")).toBe("system");
     });
   });
 });
