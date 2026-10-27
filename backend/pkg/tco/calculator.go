@@ -39,9 +39,20 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 	totalMonths := in.OwnershipYears * 12
 	salesTax := roundToCent(in.PurchasePrice * (in.SalesTaxRate / 100.0))
 
+	totalIncentives := in.TaxCreditFederal + in.TaxCreditState
+	var evSurcharge float64
+	normPowertrain := PowertrainType(strings.ToLower(string(in.Powertrain)))
+	if normPowertrain == PowertrainElectric {
+		evSurcharge = in.AnnualEVSurcharge
+	}
+
 	principal := in.PurchasePrice - in.DownPayment
 	if in.Acquisition == AcquisitionCash || in.LoanTermMonths == 0 {
 		principal = 0 // Cash purchase
+	} else if in.IncentiveTiming == IncentivePointOfSale && totalIncentives > 0 {
+		// Point-of-sale credit directly lowers capitalized vehicle cost
+		effectivePrice := math.Max(0, in.PurchasePrice-totalIncentives)
+		principal = math.Max(0, effectivePrice-in.DownPayment)
 	}
 
 	// Monthly loan payment calculation
@@ -118,7 +129,7 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 		yearEnergy := annualEnergyCost
 		yearInsurance := in.AnnualInsurance
 		yearMaintenance := in.AnnualMaintenance
-		yearFees := in.AnnualFees
+		yearFees := in.AnnualFees + evSurcharge
 
 		cumulativeEnergy += yearEnergy
 		cumulativeInsurance += yearInsurance
@@ -128,9 +139,25 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 		yearOutflow := yearLoanPayment + yearEnergy + yearInsurance + yearMaintenance + yearFees
 		if y == 0 {
 			if in.Acquisition == AcquisitionCash || in.LoanTermMonths == 0 {
-				yearOutflow += in.PurchasePrice + salesTax
+				effectiveCashPrice := in.PurchasePrice
+				if in.IncentiveTiming == IncentivePointOfSale && totalIncentives > 0 {
+					effectiveCashPrice = math.Max(0, in.PurchasePrice-totalIncentives)
+				}
+				yearOutflow += effectiveCashPrice + salesTax
 			} else {
-				yearOutflow += in.DownPayment + salesTax
+				effectiveDown := in.DownPayment
+				if in.IncentiveTiming == IncentivePointOfSale && totalIncentives > 0 {
+					// If incentives exceed purchase price, reduce down payment
+					if in.PurchasePrice-totalIncentives < in.DownPayment {
+						effectiveDown = math.Max(0, in.PurchasePrice-totalIncentives)
+					}
+				}
+				yearOutflow += effectiveDown + salesTax
+			}
+
+			// If post-purchase credit, cash inflow occurs in Year 1
+			if in.IncentiveTiming == IncentivePostPurchase && totalIncentives > 0 {
+				yearOutflow -= totalIncentives
 			}
 		}
 
@@ -175,7 +202,7 @@ func calculatePurchaseOrLoan(in TCOInput, annualEnergyCost float64) (*TCOResult,
 		FuelOrEnergy:      roundToCent(cumulativeEnergy),
 		Insurance:         roundToCent(cumulativeInsurance),
 		Maintenance:       roundToCent(cumulativeMaintenance),
-		TaxesAndFees:      roundToCent(salesTax + cumulativeFees),
+		TaxesAndFees:      roundToCent(salesTax + cumulativeFees - totalIncentives),
 	}
 
 	return &TCOResult{
@@ -196,6 +223,13 @@ func calculateLease(in TCOInput, annualEnergyCost float64) (*TCOResult, error) {
 	totalYears := in.OwnershipYears
 	leaseMonths := lease.LeaseTermMonths
 
+	totalIncentives := in.TaxCreditFederal + in.TaxCreditState
+	var evSurcharge float64
+	normPowertrain := PowertrainType(strings.ToLower(string(in.Powertrain)))
+	if normPowertrain == PowertrainElectric {
+		evSurcharge = in.AnnualEVSurcharge
+	}
+
 	// Determine contract residual value
 	residualPercent := lease.ResidualPercent
 	if residualPercent <= 0 {
@@ -210,8 +244,12 @@ func calculateLease(in TCOInput, annualEnergyCost float64) (*TCOResult, error) {
 
 	if lease.MonthlyPayment > 0 {
 		monthlyPayment = lease.MonthlyPayment
+		if totalIncentives > 0 && leaseMonths > 0 {
+			monthlyIncentive := totalIncentives / float64(leaseMonths)
+			monthlyPayment = math.Max(0, monthlyPayment-monthlyIncentive)
+		}
 		// Approximate depreciation and rent components for breakdown
-		estTotalDepr := in.PurchasePrice - contractResidual
+		estTotalDepr := math.Max(0, in.PurchasePrice-totalIncentives-contractResidual)
 		if estTotalDepr > 0 && leaseMonths > 0 {
 			monthlyDepreciation = roundToCent(estTotalDepr / float64(leaseMonths))
 		}
@@ -219,9 +257,9 @@ func calculateLease(in TCOInput, annualEnergyCost float64) (*TCOResult, error) {
 			monthlyRentCharge = roundToCent(monthlyPayment - monthlyDepreciation)
 		}
 	} else {
-		// Dealership lease formula
+		// Dealership lease formula with tax credit applied as Capitalized Cost Reduction
 		grossCapCost := in.PurchasePrice + lease.AcquisitionFee
-		netCapCost := grossCapCost - lease.DueAtSigning
+		netCapCost := grossCapCost - lease.DueAtSigning - totalIncentives
 		if netCapCost < contractResidual {
 			netCapCost = contractResidual
 		}
@@ -274,7 +312,7 @@ func calculateLease(in TCOInput, annualEnergyCost float64) (*TCOResult, error) {
 		yearEnergy := annualEnergyCost
 		yearInsurance := in.AnnualInsurance
 		yearMaintenance := in.AnnualMaintenance
-		yearFees := in.AnnualFees
+		yearFees := in.AnnualFees + evSurcharge
 
 		cumulativeEnergy += yearEnergy
 		cumulativeInsurance += yearInsurance

@@ -37,14 +37,27 @@ export function BreakdownCard({ result }: BreakdownCardProps) {
         <CardDescription>Cumulative expenses by driver across the lifecycle.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {breakdownItems.map((item) => (
-          <div key={item.label} className="flex justify-between items-center text-sm border-b pb-2">
-            <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
-              ${item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        ))}
+        {breakdownItems.map((item) => {
+          const isNegative = item.amount < 0;
+          const formatted = isNegative
+            ? `-$${Math.abs(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `$${item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+          return (
+            <div key={item.label} className="flex justify-between items-center text-sm border-b pb-2">
+              <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
+              <span
+                className={
+                  isNegative
+                    ? "font-semibold text-emerald-600 dark:text-emerald-400"
+                    : "font-semibold text-slate-900 dark:text-slate-100"
+                }
+              >
+                {formatted}
+              </span>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

@@ -18,6 +18,10 @@ export const DEFAULT_TCO_INPUT: TCOInput = {
   annualInsurance: 1550,
   annualMaintenance: 650,
   annualFees: 320,
+  annualEVSurcharge: 0,
+  taxCreditFederal: 0,
+  taxCreditState: 0,
+  incentiveTiming: "point_of_sale",
   sellAtEnd: false,
   depreciationRate: 13.0,
 };

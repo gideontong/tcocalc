@@ -354,3 +354,179 @@ func TestCalculateLeaseBuyout(t *testing.T) {
 		t.Errorf("expected year 3 ending value %f, got %f", expectedResidual, res.Yearly[2].EndingVehicleValue)
 	}
 }
+
+func TestCalculateIncentivesPointOfSale(t *testing.T) {
+	baseInput := TCOInput{
+		VehicleName:           "2024 Tesla Model 3",
+		Powertrain:            PowertrainElectric,
+		Acquisition:           AcquisitionLoan,
+		PurchasePrice:         40000,
+		DownPayment:           5000,
+		SalesTaxRate:          7.0,
+		LoanTermMonths:        60,
+		LoanInterestRate:      6.0,
+		OwnershipYears:        5,
+		AnnualMileage:         12000,
+		EfficiencyKWhPer100Mi: 25,
+		ElectricityRatePerKWh: 0.15,
+		AnnualInsurance:       1400,
+		AnnualMaintenance:     400,
+		AnnualFees:            300,
+		SellAtEnd:             false,
+	}
+
+	resNoCredit, err := Calculate(baseInput)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	creditInput := baseInput
+	creditInput.TaxCreditFederal = 7500
+	creditInput.TaxCreditState = 2000
+	creditInput.IncentiveTiming = IncentivePointOfSale
+
+	resCredit, err := Calculate(creditInput)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Point of sale credit should reduce loan principal ($35k - $9.5k = $25.5k vs $35k)
+	if resCredit.Categories.FinancingInterest >= resNoCredit.Categories.FinancingInterest {
+		t.Errorf("expected financing interest to decrease with point-of-sale credit: got %f >= %f",
+			resCredit.Categories.FinancingInterest, resNoCredit.Categories.FinancingInterest)
+	}
+
+	// Monthly loan payment should decrease
+	if resCredit.Yearly[0].LoanPayment >= resNoCredit.Yearly[0].LoanPayment {
+		t.Errorf("expected monthly loan payment to decrease with point-of-sale credit: got %f >= %f",
+			resCredit.Yearly[0].LoanPayment, resNoCredit.Yearly[0].LoanPayment)
+	}
+
+	// Net Taxes & Fees should reflect -$9,500 incentive reduction
+	expectedTaxesAndFees := resNoCredit.Categories.TaxesAndFees - 9500
+	if math.Abs(resCredit.Categories.TaxesAndFees-expectedTaxesAndFees) > 0.01 {
+		t.Errorf("expected netted taxes and fees: got %f, want %f",
+			resCredit.Categories.TaxesAndFees, expectedTaxesAndFees)
+	}
+}
+
+func TestCalculateIncentivesPostPurchase(t *testing.T) {
+	baseInput := TCOInput{
+		VehicleName:           "2024 Tesla Model 3",
+		Powertrain:            PowertrainElectric,
+		Acquisition:           AcquisitionLoan,
+		PurchasePrice:         40000,
+		DownPayment:           5000,
+		SalesTaxRate:          7.0,
+		LoanTermMonths:        60,
+		LoanInterestRate:      6.0,
+		OwnershipYears:        5,
+		AnnualMileage:         12000,
+		EfficiencyKWhPer100Mi: 25,
+		ElectricityRatePerKWh: 0.15,
+		AnnualInsurance:       1400,
+		AnnualMaintenance:     400,
+		AnnualFees:            300,
+		SellAtEnd:             false,
+	}
+
+	posInput := baseInput
+	posInput.TaxCreditFederal = 7500
+	posInput.IncentiveTiming = IncentivePointOfSale
+	resPOS, _ := Calculate(posInput)
+
+	postInput := baseInput
+	postInput.TaxCreditFederal = 7500
+	postInput.IncentiveTiming = IncentivePostPurchase
+	resPost, err := Calculate(postInput)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Post purchase finances full $35k loan principal, so interest is higher than POS
+	if resPost.Categories.FinancingInterest <= resPOS.Categories.FinancingInterest {
+		t.Errorf("expected post-purchase to accrue more interest than point-of-sale: %f <= %f",
+			resPost.Categories.FinancingInterest, resPOS.Categories.FinancingInterest)
+	}
+
+	// Year 1 total outflow in post-purchase reflects -$7,500 credit
+	baseRes, _ := Calculate(baseInput)
+	diffYear1 := baseRes.Yearly[0].TotalOutflow - resPost.Yearly[0].TotalOutflow
+	if math.Abs(diffYear1-7500) > 1.0 {
+		t.Errorf("expected Year 1 outflow to be reduced by $7,500 credit, difference was %f", diffYear1)
+	}
+}
+
+func TestCalculateEVSurcharge(t *testing.T) {
+	evInput := TCOInput{
+		VehicleName:           "2024 EV",
+		Powertrain:            PowertrainElectric,
+		Acquisition:           AcquisitionCash,
+		PurchasePrice:         35000,
+		AnnualFees:            250,
+		AnnualEVSurcharge:     200,
+		OwnershipYears:        3,
+		EfficiencyKWhPer100Mi: 28,
+		ElectricityRatePerKWh: 0.15,
+		AnnualMileage:         10000,
+	}
+
+	resEV, err := Calculate(evInput)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resEV.Yearly[0].FeesCost != 450 {
+		t.Errorf("expected fees cost to include EV surcharge (250 + 200 = 450), got %f", resEV.Yearly[0].FeesCost)
+	}
+
+	// Non-EV vehicle should ignore EV surcharge
+	gasInput := evInput
+	gasInput.Powertrain = PowertrainGas
+	gasInput.FuelEconomyMPG = 30
+	gasInput.FuelPricePerGal = 3.50
+	resGas, err := Calculate(gasInput)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resGas.Yearly[0].FeesCost != 250 {
+		t.Errorf("expected gas vehicle to ignore EV surcharge (250), got %f", resGas.Yearly[0].FeesCost)
+	}
+}
+
+func TestCalculateLeaseIncentives(t *testing.T) {
+	inputNoCredit := TCOInput{
+		VehicleName:           "2024 EV Lease",
+		Powertrain:            PowertrainElectric,
+		Acquisition:           AcquisitionLease,
+		PurchasePrice:         45000,
+		AnnualMileage:         12000,
+		EfficiencyKWhPer100Mi: 28,
+		ElectricityRatePerKWh: 0.16,
+		Lease: &LeaseInput{
+			LeaseTermMonths: 36,
+			DueAtSigning:    3000,
+			MoneyFactor:     0.0020,
+			ResidualPercent: 55.0,
+			AcquisitionFee:  695,
+		},
+	}
+
+	resNoCredit, err := Calculate(inputNoCredit)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	inputCredit := inputNoCredit
+	inputCredit.TaxCreditFederal = 7500
+	resCredit, err := Calculate(inputCredit)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resCredit.TotalCostOfOwnership >= resNoCredit.TotalCostOfOwnership {
+		t.Errorf("expected leased EV total cost to decrease with $7,500 credit: got %f >= %f",
+			resCredit.TotalCostOfOwnership, resNoCredit.TotalCostOfOwnership)
+	}
+}

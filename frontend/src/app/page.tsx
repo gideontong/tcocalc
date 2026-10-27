@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   calculateTCO,
   AcquisitionType,
+  IncentiveTiming,
   PowertrainType,
   TCOInput,
   TCOResult,
@@ -12,6 +13,7 @@ import {
 import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
 import {
   AcquisitionForm,
+  IncentivesForm,
   UsageForm,
   SummaryCards,
   BreakdownCard,
@@ -245,6 +247,16 @@ export default function Home() {
     }
   };
 
+  const handleTimingChange = (incentiveTiming: IncentiveTiming) => {
+    const next = { ...input, incentiveTiming };
+    try {
+      const nextResult = calculateTCO(next);
+      syncVehicle(next, nextResult);
+    } catch {
+      setInput(next);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
       <Navbar />
@@ -270,6 +282,12 @@ export default function Home() {
               onPowertrainChange={updatePowertrain}
               onNumberFieldChange={updateNumberField}
               onLeaseFieldChange={updateLeaseField}
+            />
+
+            <IncentivesForm
+              input={input}
+              onNumberFieldChange={updateNumberField}
+              onTimingChange={handleTimingChange}
             />
 
             <UsageForm

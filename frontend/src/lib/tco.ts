@@ -1,5 +1,6 @@
 export type PowertrainType = "gas" | "hybrid" | "electric";
 export type AcquisitionType = "cash" | "loan" | "lease";
+export type IncentiveTiming = "point_of_sale" | "post_purchase";
 
 export interface LeaseInput {
   leaseTermMonths: number;
@@ -33,6 +34,10 @@ export interface TCOInput {
   annualInsurance: number;
   annualMaintenance: number;
   annualFees: number;
+  annualEVSurcharge?: number;
+  taxCreditFederal?: number;
+  taxCreditState?: number;
+  incentiveTiming?: IncentiveTiming;
   sellAtEnd?: boolean;
   depreciationRate: number;
 }
@@ -145,9 +150,16 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
   const totalMonths = input.ownershipYears * 12;
   const salesTax = roundToCent(input.purchasePrice * (input.salesTaxRate / 100));
 
+  const totalIncentives = (input.taxCreditFederal || 0) + (input.taxCreditState || 0);
+  const timing = input.incentiveTiming || "point_of_sale";
+  const evSurcharge = input.powertrain === "electric" ? (input.annualEVSurcharge || 0) : 0;
+
   let principal = input.purchasePrice - input.downPayment;
   if (input.acquisition === "cash" || input.loanTermMonths === 0) {
     principal = 0;
+  } else if (timing === "point_of_sale" && totalIncentives > 0) {
+    const effectivePrice = Math.max(0, input.purchasePrice - totalIncentives);
+    principal = Math.max(0, effectivePrice - input.downPayment);
   }
 
   let monthlyPayment = 0;
@@ -213,7 +225,7 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
     const yearEnergy = annualEnergyCost;
     const yearInsurance = input.annualInsurance;
     const yearMaintenance = input.annualMaintenance;
-    const yearFees = input.annualFees;
+    const yearFees = input.annualFees + evSurcharge;
 
     cumulativeEnergy += yearEnergy;
     cumulativeInsurance += yearInsurance;
@@ -223,9 +235,23 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
     let yearOutflow = yearLoanPayment + yearEnergy + yearInsurance + yearMaintenance + yearFees;
     if (y === 0) {
       if (input.acquisition === "cash" || input.loanTermMonths === 0) {
-        yearOutflow += input.purchasePrice + salesTax;
+        let effectiveCashPrice = input.purchasePrice;
+        if (timing === "point_of_sale" && totalIncentives > 0) {
+          effectiveCashPrice = Math.max(0, input.purchasePrice - totalIncentives);
+        }
+        yearOutflow += effectiveCashPrice + salesTax;
       } else {
-        yearOutflow += input.downPayment + salesTax;
+        let effectiveDown = input.downPayment;
+        if (timing === "point_of_sale" && totalIncentives > 0) {
+          if (input.purchasePrice - totalIncentives < input.downPayment) {
+            effectiveDown = Math.max(0, input.purchasePrice - totalIncentives);
+          }
+        }
+        yearOutflow += effectiveDown + salesTax;
+      }
+
+      if (timing === "post_purchase" && totalIncentives > 0) {
+        yearOutflow -= totalIncentives;
       }
     }
 
@@ -270,7 +296,7 @@ function calculatePurchaseOrLoan(input: TCOInput, annualEnergyCost: number): TCO
       fuelOrEnergy: roundToCent(cumulativeEnergy),
       insurance: roundToCent(cumulativeInsurance),
       maintenance: roundToCent(cumulativeMaintenance),
-      taxesAndFees: roundToCent(salesTax + cumulativeFees),
+      taxesAndFees: roundToCent(salesTax + cumulativeFees - totalIncentives),
     },
     yearly,
   };
@@ -280,6 +306,9 @@ function calculateLease(input: TCOInput, annualEnergyCost: number): TCOResult {
   const lease = input.lease!;
   const totalYears = input.ownershipYears;
   const leaseMonths = lease.leaseTermMonths;
+
+  const totalIncentives = (input.taxCreditFederal || 0) + (input.taxCreditState || 0);
+  const evSurcharge = input.powertrain === "electric" ? (input.annualEVSurcharge || 0) : 0;
 
   let residualPercent = lease.residualPercent;
   if (!residualPercent || residualPercent <= 0) {
@@ -293,7 +322,11 @@ function calculateLease(input: TCOInput, annualEnergyCost: number): TCOResult {
 
   if (lease.monthlyPayment > 0) {
     monthlyPayment = lease.monthlyPayment;
-    const estTotalDepr = input.purchasePrice - contractResidual;
+    if (totalIncentives > 0 && leaseMonths > 0) {
+      const monthlyIncentive = totalIncentives / leaseMonths;
+      monthlyPayment = Math.max(0, monthlyPayment - monthlyIncentive);
+    }
+    const estTotalDepr = Math.max(0, input.purchasePrice - totalIncentives - contractResidual);
     if (estTotalDepr > 0 && leaseMonths > 0) {
       monthlyDepreciation = roundToCent(estTotalDepr / leaseMonths);
     }
@@ -301,9 +334,9 @@ function calculateLease(input: TCOInput, annualEnergyCost: number): TCOResult {
       monthlyRentCharge = roundToCent(monthlyPayment - monthlyDepreciation);
     }
   } else {
-    // Dealership formula
+    // Dealership formula with tax credit applied as Cap Cost Reduction
     const grossCapCost = input.purchasePrice + (lease.acquisitionFee || 0);
-    let netCapCost = grossCapCost - (lease.dueAtSigning || 0);
+    let netCapCost = grossCapCost - (lease.dueAtSigning || 0) - totalIncentives;
     if (netCapCost < contractResidual) {
       netCapCost = contractResidual;
     }
@@ -350,7 +383,7 @@ function calculateLease(input: TCOInput, annualEnergyCost: number): TCOResult {
     const yearEnergy = annualEnergyCost;
     const yearInsurance = input.annualInsurance;
     const yearMaintenance = input.annualMaintenance;
-    const yearFees = input.annualFees;
+    const yearFees = input.annualFees + evSurcharge;
 
     cumulativeEnergy += yearEnergy;
     cumulativeInsurance += yearInsurance;

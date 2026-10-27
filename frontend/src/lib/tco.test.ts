@@ -151,4 +151,90 @@ describe("TCO Calculation Engine", () => {
     expect(res.residualValue).toBe(expectedResidual);
     expect(res.yearly[2].endingVehicleValue).toBe(expectedResidual);
   });
+
+  it("calculates clean vehicle incentives at point-of-sale and post-purchase", () => {
+    const baseInput: TCOInput = {
+      vehicleName: "2024 Tesla Model 3",
+      powertrain: "electric",
+      acquisition: "loan",
+      purchasePrice: 40000,
+      downPayment: 5000,
+      salesTaxRate: 7.0,
+      loanTermMonths: 60,
+      loanInterestRate: 6.0,
+      ownershipYears: 5,
+      annualMileage: 12000,
+      fuelEconomyMPG: 0,
+      fuelPricePerGal: 0,
+      efficiencyKWhPer100Mi: 25,
+      electricityRatePerKWh: 0.15,
+      annualInsurance: 1400,
+      annualMaintenance: 400,
+      annualFees: 300,
+      depreciationRate: 15.0,
+      sellAtEnd: false,
+    };
+
+    const resBase = calculateTCO(baseInput);
+
+    // Point of sale credit
+    const resPOS = calculateTCO({
+      ...baseInput,
+      taxCreditFederal: 7500,
+      taxCreditState: 2000,
+      incentiveTiming: "point_of_sale",
+    });
+
+    expect(resPOS.categories.financingInterest).toBeLessThan(resBase.categories.financingInterest);
+    expect(resPOS.yearly[0].loanPayment).toBeLessThan(resBase.yearly[0].loanPayment);
+    expect(resPOS.categories.taxesAndFees).toBe(resBase.categories.taxesAndFees - 9500);
+
+    // Post purchase credit
+    const resPost = calculateTCO({
+      ...baseInput,
+      taxCreditFederal: 7500,
+      taxCreditState: 2000,
+      incentiveTiming: "post_purchase",
+    });
+
+    expect(resPost.categories.financingInterest).toBeGreaterThan(resPOS.categories.financingInterest);
+    expect(resPost.yearly[0].totalOutflow).toBeCloseTo(resBase.yearly[0].totalOutflow - 9500, 2);
+  });
+
+  it("applies annual EV road-use fee surcharge exclusively to electric vehicles", () => {
+    const evInput: TCOInput = {
+      vehicleName: "2024 EV",
+      powertrain: "electric",
+      acquisition: "cash",
+      purchasePrice: 35000,
+      downPayment: 35000,
+      salesTaxRate: 7.0,
+      loanTermMonths: 0,
+      loanInterestRate: 0,
+      ownershipYears: 3,
+      annualMileage: 10000,
+      fuelEconomyMPG: 0,
+      fuelPricePerGal: 0,
+      efficiencyKWhPer100Mi: 28,
+      electricityRatePerKWh: 0.15,
+      annualInsurance: 1200,
+      annualMaintenance: 400,
+      annualFees: 250,
+      annualEVSurcharge: 200,
+      depreciationRate: 15.0,
+    };
+
+    const resEV = calculateTCO(evInput);
+    expect(resEV.yearly[0].feesCost).toBe(450); // 250 + 200
+
+    const resGas = calculateTCO({
+      ...evInput,
+      powertrain: "gas",
+      fuelEconomyMPG: 30,
+      fuelPricePerGal: 3.5,
+      efficiencyKWhPer100Mi: 0,
+      electricityRatePerKWh: 0,
+    });
+    expect(resGas.yearly[0].feesCost).toBe(250); // surcharge ignored on gas
+  });
 });

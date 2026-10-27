@@ -24,6 +24,14 @@ const (
 	AcquisitionLease AcquisitionType = "lease"
 )
 
+// IncentiveTiming defines whether government incentives apply at point of sale or post-purchase.
+type IncentiveTiming string
+
+const (
+	IncentivePointOfSale  IncentiveTiming = "point_of_sale"
+	IncentivePostPurchase IncentiveTiming = "post_purchase"
+)
+
 // LeaseInput encapsulates parameters for a vehicle lease agreement.
 type LeaseInput struct {
 	LeaseTermMonths      int     `json:"leaseTermMonths"`      // Typically 24, 36, or 48 months
@@ -58,12 +66,21 @@ type TCOInput struct {
 	AnnualInsurance       float64         `json:"annualInsurance"`       // Estimated annual insurance cost
 	AnnualMaintenance     float64         `json:"annualMaintenance"`     // Estimated annual maintenance & tires
 	AnnualFees            float64         `json:"annualFees"`            // Annual registration, inspections, and taxes
+	AnnualEVSurcharge     float64         `json:"annualEVSurcharge"`     // Extra annual state road-use registration fee for EVs ($/yr)
+	TaxCreditFederal      float64         `json:"taxCreditFederal"`      // Federal clean vehicle credit ($)
+	TaxCreditState        float64         `json:"taxCreditState"`        // State/local clean vehicle rebate ($)
+	IncentiveTiming       IncentiveTiming `json:"incentiveTiming"`       // "point_of_sale" (default) or "post_purchase"
 	SellAtEnd             bool            `json:"sellAtEnd"`             // Whether vehicle is sold/liquidated at end of horizon
 	DepreciationRate      float64         `json:"depreciationRate"`      // Annual value loss percentage, e.g. 15.0 for 15%
 }
 
 // Normalize sets sensible defaults for optional or missing fields.
 func (in *TCOInput) Normalize() {
+	in.IncentiveTiming = IncentiveTiming(strings.ToLower(string(in.IncentiveTiming)))
+	if in.IncentiveTiming == "" {
+		in.IncentiveTiming = IncentivePointOfSale
+	}
+
 	in.Acquisition = AcquisitionType(strings.ToLower(string(in.Acquisition)))
 	if in.Acquisition == "" {
 		if in.LoanTermMonths == 0 && in.DownPayment >= in.PurchasePrice && in.PurchasePrice > 0 {

@@ -4,6 +4,7 @@ import {
   AcquisitionForm,
   PowertrainSelector,
   UsageForm,
+  IncentivesForm,
   SummaryCards,
   BreakdownCard,
   ScheduleTable,
@@ -408,6 +409,70 @@ describe("Calculator Modular Components", () => {
       const systemBtn = screen.getByRole("radio", { name: /System theme/i });
       fireEvent.click(systemBtn);
       expect(localStorage.getItem("tcocalc_theme")).toBe("system");
+    });
+  });
+
+  describe("IncentivesForm", () => {
+    it("renders quick presets and triggers callback when preset is clicked", () => {
+      const onNumberChange = vi.fn();
+      const onTimingChange = vi.fn();
+
+      render(
+        <IncentivesForm
+          input={sampleLoanInput}
+          onNumberFieldChange={onNumberChange}
+          onTimingChange={onTimingChange}
+        />
+      );
+
+      expect(screen.getByText("Incentives & EV Fees")).toBeInTheDocument();
+      expect(screen.getByText("+$7,500 (New EV)")).toBeInTheDocument();
+      expect(screen.getByText("+$4,000 (Used EV)")).toBeInTheDocument();
+      expect(screen.getByText("$0 (None)")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText("+$7,500 (New EV)"));
+      expect(onNumberChange).toHaveBeenCalledWith("taxCreditFederal", "7500");
+
+      fireEvent.click(screen.getByText("+$4,000 (Used EV)"));
+      expect(onNumberChange).toHaveBeenCalledWith("taxCreditFederal", "4000");
+    });
+
+    it("triggers timing change callback when clicking timing toggle", () => {
+      const onNumberChange = vi.fn();
+      const onTimingChange = vi.fn();
+
+      render(
+        <IncentivesForm
+          input={sampleLoanInput}
+          onNumberFieldChange={onNumberChange}
+          onTimingChange={onTimingChange}
+        />
+      );
+
+      const postPurchaseBtn = screen.getByText(/Post-Purchase/i);
+      fireEvent.click(postPurchaseBtn);
+      expect(onTimingChange).toHaveBeenCalledWith("post_purchase");
+    });
+
+    it("handles state rebate and annual EV surcharge inputs", () => {
+      const onNumberChange = vi.fn();
+      const onTimingChange = vi.fn();
+
+      render(
+        <IncentivesForm
+          input={{ ...sampleLoanInput, powertrain: "electric" }}
+          onNumberFieldChange={onNumberChange}
+          onTimingChange={onTimingChange}
+        />
+      );
+
+      const stateInput = screen.getByLabelText(/State & Local Rebates/i);
+      fireEvent.change(stateInput, { target: { value: "2500" } });
+      expect(onNumberChange).toHaveBeenCalledWith("taxCreditState", "2500");
+
+      const evSurchargeInput = screen.getByLabelText(/Annual EV Road Surcharge/i);
+      fireEvent.change(evSurchargeInput, { target: { value: "200" } });
+      expect(onNumberChange).toHaveBeenCalledWith("annualEVSurcharge", "200");
     });
   });
 });

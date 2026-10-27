@@ -34,6 +34,12 @@ var (
 	depreciation     float64
 	sellAtEndFlag    bool
 
+	// Incentive flags
+	taxCreditFederalFlag float64
+	taxCreditStateFlag   float64
+	creditTimingFlag     string
+	evSurchargeFlag      float64
+
 	// Lease-specific flags
 	leaseMonthsFlag   int
 	leaseDueFlag      float64
@@ -80,6 +86,10 @@ Cash Purchase, Loan Financing, and Vehicle Lease options.`,
 	rootCmd.Flags().Float64Var(&feesFlag, "fees", 300, "Annual registration and fees ($)")
 	rootCmd.Flags().Float64Var(&depreciation, "depreciation-rate", 15.0, "Annual depreciation rate (%)")
 	rootCmd.Flags().BoolVar(&sellAtEndFlag, "sell-at-end", false, "Sell vehicle at end of ownership horizon (accounts for resale value and depreciation)")
+	rootCmd.Flags().Float64Var(&taxCreditFederalFlag, "tax-credit", 0, "Federal clean vehicle tax credit ($)")
+	rootCmd.Flags().Float64Var(&taxCreditStateFlag, "state-rebate", 0, "State/local clean vehicle rebate ($)")
+	rootCmd.Flags().StringVar(&creditTimingFlag, "credit-timing", "point_of_sale", "Incentive timing (point_of_sale or post_purchase)")
+	rootCmd.Flags().Float64Var(&evSurchargeFlag, "ev-surcharge", 0, "Annual state EV road-use fee surcharge ($/yr)")
 
 	// Lease flags
 	rootCmd.Flags().IntVar(&leaseMonthsFlag, "lease-months", 36, "Lease term in months (e.g. 24, 36, 48)")
@@ -130,6 +140,10 @@ func runCalculate(cmd *cobra.Command, args []string) error {
 			AnnualFees:            feesFlag,
 			SellAtEnd:             sellAtEndFlag,
 			DepreciationRate:      depreciation,
+			TaxCreditFederal:      taxCreditFederalFlag,
+			TaxCreditState:        taxCreditStateFlag,
+			IncentiveTiming:       tco.IncentiveTiming(creditTimingFlag),
+			AnnualEVSurcharge:     evSurchargeFlag,
 		}
 
 		if input.Acquisition == tco.AcquisitionLease {
