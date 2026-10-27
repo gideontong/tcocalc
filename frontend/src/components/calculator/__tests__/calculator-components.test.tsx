@@ -381,34 +381,85 @@ describe("Calculator Modular Components", () => {
     beforeEach(() => {
       localStorage.clear();
       document.documentElement.classList.remove("dark");
+      vi.restoreAllMocks();
     });
 
-    it("renders brand logo, title, and 3-state theme controls", () => {
+    it("renders brand logo, title, theme dropdown trigger, share button, and GitHub link", () => {
       render(<Navbar />);
 
       expect(screen.getByText("tcocalc")).toBeInTheDocument();
       expect(screen.getByAltText("tcocalc logo")).toBeInTheDocument();
-      expect(screen.getByRole("radio", { name: /System theme/i })).toBeInTheDocument();
-      expect(screen.getByRole("radio", { name: /Light theme/i })).toBeInTheDocument();
-      expect(screen.getByRole("radio", { name: /Dark theme/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Select theme/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Share and export options/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /GitHub repository/i })).toHaveAttribute(
+        "href",
+        "https://github.com/gideontong/tcocalc"
+      );
     });
 
-    it("toggles dark and light mode and persists to localStorage", () => {
+    it("toggles dark and light mode via dropdown and persists to localStorage", () => {
       render(<Navbar />);
 
-      const darkBtn = screen.getByRole("radio", { name: /Dark theme/i });
-      fireEvent.click(darkBtn);
+      // Open theme dropdown and select Dark
+      fireEvent.click(screen.getByRole("button", { name: /Select theme/i }));
+      const darkItem = screen.getByRole("menuitem", { name: /Dark theme/i });
+      fireEvent.click(darkItem);
       expect(document.documentElement.classList.contains("dark")).toBe(true);
       expect(localStorage.getItem("tcocalc_theme")).toBe("dark");
 
-      const lightBtn = screen.getByRole("radio", { name: /Light theme/i });
-      fireEvent.click(lightBtn);
+      // Open theme dropdown and select Light
+      fireEvent.click(screen.getByRole("button", { name: /Select theme/i }));
+      const lightItem = screen.getByRole("menuitem", { name: /Light theme/i });
+      fireEvent.click(lightItem);
       expect(document.documentElement.classList.contains("dark")).toBe(false);
       expect(localStorage.getItem("tcocalc_theme")).toBe("light");
 
-      const systemBtn = screen.getByRole("radio", { name: /System theme/i });
-      fireEvent.click(systemBtn);
+      // Open theme dropdown and select System
+      fireEvent.click(screen.getByRole("button", { name: /Select theme/i }));
+      const systemItem = screen.getByRole("menuitem", { name: /System theme/i });
+      fireEvent.click(systemItem);
       expect(localStorage.getItem("tcocalc_theme")).toBe("system");
+    });
+
+    it("opens share dropdown and copies shareable link to clipboard with toast notification", async () => {
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: writeTextMock,
+        },
+      });
+
+      render(<Navbar activeInput={sampleLoanInput} />);
+
+      // Open share menu
+      fireEvent.click(screen.getByRole("button", { name: /Share and export options/i }));
+      const copyLinkItem = screen.getByRole("menuitem", { name: /Copy Shareable Link/i });
+      fireEvent.click(copyLinkItem);
+
+      expect(writeTextMock).toHaveBeenCalledTimes(1);
+      expect(writeTextMock.mock.calls[0][0]).toContain("#config=");
+      expect(await screen.findByText(/Shareable link copied to clipboard!/i)).toBeInTheDocument();
+    });
+
+    it("triggers JSON and CSV exports from share menu", () => {
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+      render(<Navbar activeInput={sampleLoanInput} />);
+
+      // Test JSON export
+      fireEvent.click(screen.getByRole("button", { name: /Share and export options/i }));
+      const jsonItem = screen.getByRole("menuitem", { name: /Download JSON/i });
+      fireEvent.click(jsonItem);
+      expect(screen.getByText(/JSON file downloaded!/i)).toBeInTheDocument();
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+
+      // Test CSV export
+      fireEvent.click(screen.getByRole("button", { name: /Share and export options/i }));
+      const csvItem = screen.getByRole("menuitem", { name: /Download CSV/i });
+      fireEvent.click(csvItem);
+      expect(screen.getByText(/CSV schedule downloaded!/i)).toBeInTheDocument();
+      expect(clickSpy).toHaveBeenCalledTimes(2);
+
+      clickSpy.mockRestore();
     });
   });
 

@@ -18,7 +18,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
-      <Navbar />
+      <Navbar
+        vehicles={state.vehicles}
+        activeInput={state.input}
+        activeResult={state.result}
+      />
       <main className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
         {/* Saved Vehicles Comparison Table */}
         <VehicleTable

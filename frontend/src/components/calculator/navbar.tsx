@@ -2,13 +2,34 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Monitor, Sun, Moon } from "lucide-react";
+import {
+  Monitor,
+  Sun,
+  Moon,
+  Share2,
+  ChevronDown,
+  Check,
+  Link as LinkIcon,
+  FileCode,
+  FileSpreadsheet,
+  Github,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TCOInput, TCOResult, SavedVehicle, calculateTCO } from "@/lib/tco";
+import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
+import {
+  generateShareableUrl,
+  exportToJson,
+  exportScheduleToCsv,
+} from "@/lib/export";
 
 export type ThemeMode = "system" | "light" | "dark";
 
 export interface NavbarProps {
   className?: string;
+  vehicles?: SavedVehicle[];
+  activeInput?: TCOInput;
+  activeResult?: TCOResult;
 }
 
 function getSystemTheme(): "dark" | "light" {
@@ -35,8 +56,23 @@ function applyTheme(mode: ThemeMode) {
   }
 }
 
-export function Navbar({ className }: NavbarProps) {
+export function Navbar({
+  className,
+  vehicles = [],
+  activeInput = DEFAULT_TCO_INPUT,
+  activeResult,
+}: NavbarProps) {
   const [theme, setTheme] = React.useState<ThemeMode>("system");
+  const [isThemeOpen, setIsThemeOpen] = React.useState(false);
+  const [isShareOpen, setIsShareOpen] = React.useState(false);
+  const [toast, setToast] = React.useState<string | null>(null);
+
+  const themeRef = React.useRef<HTMLDivElement>(null);
+  const shareRef = React.useRef<HTMLDivElement>(null);
+
+  const resolvedResult = React.useMemo(() => {
+    return activeResult ?? calculateTCO(activeInput);
+  }, [activeResult, activeInput]);
 
   React.useEffect(() => {
     try {
@@ -71,12 +107,92 @@ export function Navbar({ className }: NavbarProps) {
     }
   }, []);
 
+  // Dismiss dropdowns on outside click or escape key
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (themeRef.current && !themeRef.current.contains(target)) {
+        setIsThemeOpen(false);
+      }
+      if (shareRef.current && !shareRef.current.contains(target)) {
+        setIsShareOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsThemeOpen(false);
+        setIsShareOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => {
+      setToast(null);
+    }, 2500);
+  };
+
   const handleSelectTheme = (mode: ThemeMode) => {
     setTheme(mode);
+    setIsThemeOpen(false);
     try {
       localStorage.setItem("tcocalc_theme", mode);
     } catch {}
     applyTheme(mode);
+  };
+
+  const handleCopyShareLink = async () => {
+    setIsShareOpen(false);
+    const url = generateShareableUrl(activeInput);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        showToast("Shareable link copied to clipboard!");
+      } else {
+        // Fallback for older browsers
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        showToast("Shareable link copied to clipboard!");
+      }
+    } catch {
+      showToast("Failed to copy link to clipboard.");
+    }
+  };
+
+  const handleExportJson = () => {
+    setIsShareOpen(false);
+    const slug = (activeInput.vehicleName || "vehicle")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
+    const filename = `tcocalc-${slug}-${Date.now()}.json`;
+    exportToJson(filename, {
+      activeVehicle: { input: activeInput, result: resolvedResult },
+      savedVehicles: vehicles.length > 0 ? vehicles : undefined,
+    });
+    showToast("JSON file downloaded!");
+  };
+
+  const handleExportCsv = () => {
+    setIsShareOpen(false);
+    const slug = (activeInput.vehicleName || "vehicle")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
+    const filename = `tcocalc-${slug}-schedule.csv`;
+    exportScheduleToCsv(filename, resolvedResult, activeInput.vehicleName);
+    showToast("CSV schedule downloaded!");
   };
 
   return (
@@ -86,83 +202,224 @@ export function Navbar({ className }: NavbarProps) {
         className
       )}
     >
-      <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-        {/* Left: Brand Identity */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1.5 shadow-sm shrink-0">
-            <Image src="/icon.svg" width={28} height={28} alt="tcocalc logo" className="w-full h-full object-contain" />
+      <div className="max-w-6xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
+        {/* Left: Minimal Brand Identity */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-1 shadow-xs shrink-0">
+            <Image
+              src="/icon.svg"
+              width={20}
+              height={20}
+              alt="tcocalc logo"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
-                tcocalc
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                TCO Calculator
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Vehicle Total Cost of Ownership Calculator across Cash, Loan, and Lease
-            </p>
-          </div>
+          <span className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            tcocalc
+          </span>
         </div>
 
-        {/* Right: 3-State Theme Toggle Group */}
-        <div
-          role="radiogroup"
-          aria-label="Theme selection"
-          className="flex items-center p-1 bg-slate-200/70 dark:bg-slate-900 border border-slate-300/50 dark:border-slate-800 rounded-lg shrink-0"
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={theme === "system"}
-            aria-label="System theme"
-            onClick={() => handleSelectTheme("system")}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer",
-              theme === "system"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+        {/* Right: Actions, Theme & Repo */}
+        <div className="flex items-center gap-2">
+          {/* Share & Export Dropdown */}
+          <div className="relative" ref={shareRef}>
+            <button
+              type="button"
+              aria-haspopup="true"
+              aria-expanded={isShareOpen}
+              aria-label="Share and export options"
+              onClick={() => {
+                setIsShareOpen((prev) => !prev);
+                setIsThemeOpen(false);
+              }}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer text-xs font-semibold shadow-xs"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Share</span>
+              <ChevronDown
+                className={cn(
+                  "w-3 h-3 opacity-60 transition-transform duration-200",
+                  isShareOpen && "rotate-180"
+                )}
+              />
+            </button>
+
+            {isShareOpen && (
+              <div
+                role="menu"
+                aria-label="Share and export menu"
+                className="absolute right-0 mt-1.5 w-60 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-1.5 z-50 text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleCopyShareLink}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <LinkIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                      Copy Shareable Link
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Encodes active configuration in URL
+                    </div>
+                  </div>
+                </button>
+
+                <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleExportJson}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <FileCode className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                      Download JSON
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Full parameters & calculated schedule
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleExportCsv}
+                  className="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                      Download CSV
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Annual cash outflow schedule
+                    </div>
+                  </div>
+                </button>
+              </div>
             )}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">System</span>
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={theme === "light"}
-            aria-label="Light theme"
-            onClick={() => handleSelectTheme("light")}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer",
-              theme === "light"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          </div>
+
+          {/* Theme Selector Dropdown */}
+          <div className="relative" ref={themeRef}>
+            <button
+              type="button"
+              aria-haspopup="true"
+              aria-expanded={isThemeOpen}
+              aria-label="Select theme"
+              onClick={() => {
+                setIsThemeOpen((prev) => !prev);
+                setIsShareOpen(false);
+              }}
+              className="h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+            >
+              {theme === "dark" && <Moon className="w-3.5 h-3.5" />}
+              {theme === "light" && <Sun className="w-3.5 h-3.5" />}
+              {theme === "system" && <Monitor className="w-3.5 h-3.5" />}
+              <ChevronDown
+                className={cn(
+                  "w-3 h-3 opacity-60 transition-transform duration-200",
+                  isThemeOpen && "rotate-180"
+                )}
+              />
+            </button>
+
+            {isThemeOpen && (
+              <div
+                role="menu"
+                aria-label="Theme menu"
+                className="absolute right-0 mt-1.5 w-36 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-1 z-50 text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-label="System theme"
+                  onClick={() => handleSelectTheme("system")}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors",
+                    theme === "system"
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <Monitor className="w-3.5 h-3.5" />
+                    <span>System</span>
+                  </span>
+                  {theme === "system" && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-label="Light theme"
+                  onClick={() => handleSelectTheme("light")}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors",
+                    theme === "light"
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>Light</span>
+                  </span>
+                  {theme === "light" && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-label="Dark theme"
+                  onClick={() => handleSelectTheme("dark")}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors",
+                    theme === "dark"
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Dark</span>
+                  </span>
+                  {theme === "dark" && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                </button>
+              </div>
             )}
+          </div>
+
+          {/* GitHub Repository Link */}
+          <a
+            href="https://github.com/gideontong/tcocalc"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub repository"
+            className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors shadow-xs"
           >
-            <Sun className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Light</span>
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={theme === "dark"}
-            aria-label="Dark theme"
-            onClick={() => handleSelectTheme("dark")}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer",
-              theme === "dark"
-                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-            )}
-          >
-            <Moon className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Dark</span>
-          </button>
+            <Github className="w-4 h-4" />
+          </a>
         </div>
       </div>
+
+      {/* Floating Feedback Toast Notification */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold border border-slate-800 dark:border-slate-200 transition-all animate-in fade-in slide-in-from-bottom-2"
+        >
+          <Check className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          <span>{toast}</span>
+        </div>
+      )}
     </header>
   );
 }

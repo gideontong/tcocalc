@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useTCOCalculator, STORAGE_KEY } from "./use-tco-calculator";
 import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
+import { toBase64 } from "@/lib/export";
 
 describe("useTCOCalculator hook", () => {
   beforeEach(() => {
@@ -158,5 +159,26 @@ describe("useTCOCalculator hook", () => {
     expect(result.current.state.selectedId).toBe("saved-1");
     expect(result.current.state.input.vehicleName).toBe("Hydrated Vehicle");
     expect(result.current.state.result.netCostOfOwnership).toBe(32000);
+  });
+
+  it("hydrates vehicle from window.location.hash on mount", () => {
+    const sharedInput = {
+      ...DEFAULT_TCO_INPUT,
+      vehicleName: "Shared Electric Beast",
+      purchasePrice: 65000,
+      powertrain: "electric" as const,
+    };
+    const hash = `#config=${toBase64(JSON.stringify(sharedInput))}`;
+    window.location.hash = hash;
+
+    const { result } = renderHook(() => useTCOCalculator());
+
+    expect(result.current.state.input.vehicleName).toBe("Shared Electric Beast");
+    expect(result.current.state.input.purchasePrice).toBe(65000);
+    expect(result.current.state.input.powertrain).toBe("electric");
+    expect(result.current.state.result.netCostOfOwnership).toBeGreaterThan(0);
+
+    // Clean up hash
+    window.location.hash = "";
   });
 });

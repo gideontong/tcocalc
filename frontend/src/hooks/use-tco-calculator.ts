@@ -12,6 +12,7 @@ import {
   SavedVehicle,
 } from "@/lib/tco";
 import { DEFAULT_TCO_INPUT } from "@/lib/defaults";
+import { decodeShareableConfig } from "@/lib/export";
 
 export const STORAGE_KEY = "tcocalc_saved_vehicles";
 
@@ -50,8 +51,31 @@ export function useTCOCalculator(): UseTCOCalculatorReturn {
   const [input, setInput] = React.useState<TCOInput>(DEFAULT_TCO_INPUT);
   const [result, setResult] = React.useState<TCOResult>(() => calculateTCO(DEFAULT_TCO_INPUT));
 
-  // Hydrate saved vehicles from localStorage on mount
+  // Hydrate saved vehicles from URL hash or localStorage on mount
   React.useEffect(() => {
+    // Check for shared URL configuration in hash first
+    if (typeof window !== "undefined" && window.location.hash) {
+      const shared = decodeShareableConfig(window.location.hash);
+      if (shared) {
+        try {
+          const calc = calculateTCO(shared);
+          setInput(shared);
+          setResult(calc);
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed: SavedVehicle[] = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setVehicles(parsed);
+              setComparedIds(parsed.map((v) => v.id));
+            }
+          }
+          return;
+        } catch (err) {
+          console.error("Failed to calculate shared vehicle configuration", err);
+        }
+      }
+    }
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
