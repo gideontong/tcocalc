@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IncentiveTiming, TCOInput } from "@/lib/tco";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export interface IncentivesFormProps {
   input: TCOInput;
@@ -45,7 +45,7 @@ export function IncentivesForm({
           <div className="flex items-center justify-between">
             <Label htmlFor="taxCreditFederal">Federal Clean Vehicle Credit ($)</Label>
             <span className="text-xs text-muted-foreground font-mono">
-              ${federalCredit.toLocaleString()}
+              {formatCurrency(federalCredit, { showCents: false })}
             </span>
           </div>
 

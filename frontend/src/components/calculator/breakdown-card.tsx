@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TCOResult } from "@/lib/tco";
+import { formatCurrency } from "@/lib/utils";
 
 export interface BreakdownCardProps {
   result: TCOResult;
@@ -39,9 +40,6 @@ export function BreakdownCard({ result }: BreakdownCardProps) {
       <CardContent className="space-y-3">
         {breakdownItems.map((item) => {
           const isNegative = item.amount < 0;
-          const formatted = isNegative
-            ? `-$${Math.abs(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : `$${item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
           return (
             <div key={item.label} className="flex justify-between items-center text-sm border-b pb-2">
@@ -53,7 +51,7 @@ export function BreakdownCard({ result }: BreakdownCardProps) {
                     : "font-semibold text-slate-900 dark:text-slate-100"
                 }
               >
-                {formatted}
+                {formatCurrency(item.amount)}
               </span>
             </div>
           );

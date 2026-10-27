@@ -2,7 +2,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SavedVehicle, VEHICLE_PALETTE } from "@/lib/tco";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export interface VehicleTableProps {
   vehicles: SavedVehicle[];
@@ -109,17 +109,10 @@ export function VehicleTable({
                       <td className="py-2.5 px-3 capitalize">{v.input.powertrain}</td>
                       <td className="py-2.5 px-3 capitalize">{v.input.acquisition}</td>
                       <td className="py-2.5 px-3">
-                        ${v.result.monthlyAverageCost.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                        /mo
+                        {formatCurrency(v.result.monthlyAverageCost)}/mo
                       </td>
                       <td className="py-2.5 px-3">
-                        ${v.result.netCostOfOwnership.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                        {formatCurrency(v.result.netCostOfOwnership)}
                       </td>
                       <td className="py-2.5 px-3 text-right">
                         <Button

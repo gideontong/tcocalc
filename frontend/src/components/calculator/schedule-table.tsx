@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SavedVehicle, TCOResult, VEHICLE_PALETTE } from "@/lib/tco";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export interface ScheduleTableProps {
   result: TCOResult;
@@ -136,7 +136,7 @@ export function ScheduleTable({ result, comparedVehicles }: ScheduleTableProps) 
               />
               <Tooltip
                 formatter={(val) =>
-                  typeof val === "number" ? `$${val.toLocaleString()}` : String(val ?? "")
+                  typeof val === "number" ? formatCurrency(val, { showCents: false }) : String(val ?? "")
                 }
                 contentStyle={{
                   backgroundColor: "rgba(255, 255, 255, 0.95)",
@@ -210,12 +210,12 @@ export function ScheduleTable({ result, comparedVehicles }: ScheduleTableProps) 
                 {result.yearly.map((row) => (
                   <tr key={row.year} className="border-b last:border-0 hover:bg-slate-50/50">
                     <td className="py-2 font-medium">{row.year}</td>
-                    {showDepreciation && <td>${row.depreciationCost.toFixed(2)}</td>}
-                    <td>${(row.leasePayment ?? row.loanPayment).toFixed(2)}</td>
-                    <td>${row.fuelOrEnergyCost.toFixed(2)}</td>
-                    <td>${row.insuranceCost.toFixed(2)}</td>
+                    {showDepreciation && <td>{formatCurrency(row.depreciationCost)}</td>}
+                    <td>{formatCurrency(row.leasePayment ?? row.loanPayment)}</td>
+                    <td>{formatCurrency(row.fuelOrEnergyCost)}</td>
+                    <td>{formatCurrency(row.insuranceCost)}</td>
                     {showValuation && (
-                      <td className="font-medium">${row.endingVehicleValue.toFixed(2)}</td>
+                      <td className="font-medium">{formatCurrency(row.endingVehicleValue)}</td>
                     )}
                   </tr>
                 ))}
