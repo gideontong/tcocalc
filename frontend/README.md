@@ -1,6 +1,6 @@
 # tcocalc Frontend
 
-The modern web user interface for the **tcocalc** vehicle Total Cost of Ownership calculator, built with [Next.js 15](https://nextjs.org) (App Router), [React 19](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS v4](https://tailwindcss.com).
+The modern web user interface for the **tcocalc** vehicle Total Cost of Ownership calculator, built with [Next.js 16](https://nextjs.org) (App Router), [React 19](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS v4](https://tailwindcss.com).
 
 ---
 
@@ -21,12 +21,12 @@ The frontend enables users to model, visualize, and compare lifecycle ownership 
 
 ### Prerequisites
 
-Ensure you are using Node.js LTS:
+Ensure you are using Node.js 26+ Active LTS:
 
 ```bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm use --lts
+nvm use
 ```
 
 ### Development Server

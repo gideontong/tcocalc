@@ -2,10 +2,10 @@
 
 # tcocalc
 
-[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)](https://nextjs.org)
+[![Go Version](https://img.shields.io/badge/Go-1.27+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com)
 
 **tcocalc** is a comprehensive Total Cost of Ownership (TCO) calculator and multi-vehicle comparison engine. It models every facet of vehicle economics across gas (ICE), hybrid, and electric (EV) powertrains under cash purchase, loan financing, and lease agreements.
@@ -59,7 +59,7 @@ tcocalc/
 │   │   └── server/           # REST API HTTP server (Standard Library)
 │   └── pkg/
 │       └── tco/              # Pure domain calculation logic & unit tests
-├── frontend/                 # Modern web interface (Next.js 15 App Router)
+├── frontend/                 # Modern web interface (Next.js 16 App Router)
 │   ├── app/                  # App Router pages and root layout
 │   └── components/           # UI components (Navbar, Form, Charts, Tables)
 ├── docs/
@@ -77,8 +77,8 @@ tcocalc/
 
 ### Prerequisites
 
-- **Go**: 1.22+ installed
-- **Node.js**: LTS version (initialized via `nvm use --lts` or `nvm use lts`)
+- **Go**: 1.27+ installed
+- **Node.js**: 26+ Active LTS (initialized via `nvm use` or `nvm use --lts`)
 
 ### Running the Full Application
 
@@ -248,7 +248,7 @@ curl -X POST http://localhost:9095/api/v1/calculate \
 
 Please review [AGENTS.md](AGENTS.md) for full operational protocols:
 
-- **Node Versioning**: Run `nvm use --lts` (or `nvm use lts`) before npm operations.
+- **Node Versioning**: Run `nvm use` (or `nvm use --lts`) before npm operations (requires Node.js 26+).
 - **Go Standards**: Pure calculation domain logic belongs in `backend/pkg/tco` with accompanying tests.
 - **Specifications**: Implementation specs reside in `docs/specs/` and are only created when explicitly requested.
 - **Git Commit Standards**: All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) and include the 3 mandatory git trailers:

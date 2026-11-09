@@ -26,7 +26,7 @@ test-frontend:
 lint: lint-backend lint-frontend lint-md
 
 lint-backend:
-	cd backend && (which golangci-lint >/dev/null 2>&1 && golangci-lint run || go vet ./...)
+	cd backend && (if command -v golangci-lint >/dev/null 2>&1; then golangci-lint run; elif [ -x ../bin/golangci-lint ]; then ../bin/golangci-lint run; else go vet ./...; fi)
 
 lint-frontend:
 	cd frontend && npm run lint

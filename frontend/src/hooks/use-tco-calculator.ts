@@ -44,303 +44,354 @@ export interface UseTCOCalculatorReturn {
   actions: TCOCalculatorActions;
 }
 
-export function useTCOCalculator(): UseTCOCalculatorReturn {
-  const [vehicles, setVehicles] = React.useState<SavedVehicle[]>([]);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [comparedIds, setComparedIds] = React.useState<string[]>([]);
-  const [input, setInput] = React.useState<TCOInput>(DEFAULT_TCO_INPUT);
-  const [result, setResult] = React.useState<TCOResult>(() => calculateTCO(DEFAULT_TCO_INPUT));
+const SERVER_DEFAULT_STATE: TCOCalculatorState = {
+  vehicles: [],
+  selectedId: null,
+  comparedIds: [],
+  input: DEFAULT_TCO_INPUT,
+  result: calculateTCO(DEFAULT_TCO_INPUT),
+};
 
-  // Hydrate saved vehicles from URL hash or localStorage on mount
-  React.useEffect(() => {
-    // Check for shared URL configuration in hash first
-    if (typeof window !== "undefined" && window.location.hash) {
-      const shared = decodeShareableConfig(window.location.hash);
-      if (shared) {
-        try {
-          const calc = calculateTCO(shared);
-          setInput(shared);
-          setResult(calc);
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed: SavedVehicle[] = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setVehicles(parsed);
-              setComparedIds(parsed.map((v) => v.id));
-            }
+let cachedKey: string | null = null;
+let cachedSnapshot: TCOCalculatorState = SERVER_DEFAULT_STATE;
+
+function getClientInitialState(): TCOCalculatorState {
+  if (typeof window === "undefined") {
+    return SERVER_DEFAULT_STATE;
+  }
+
+  const hash = window.location.hash || "";
+  let savedRaw = "";
+  try {
+    savedRaw = localStorage.getItem(STORAGE_KEY) ?? "";
+  } catch {
+    savedRaw = "";
+  }
+
+  const key = `${hash}::${savedRaw}`;
+  if (key === cachedKey) {
+    return cachedSnapshot;
+  }
+
+  let nextSnapshot: TCOCalculatorState = SERVER_DEFAULT_STATE;
+
+  // Check for shared URL configuration in hash first
+  if (hash) {
+    const shared = decodeShareableConfig(hash);
+    if (shared) {
+      try {
+        const calc = calculateTCO(shared);
+        let vehicles: SavedVehicle[] = [];
+        let comparedIds: string[] = [];
+        if (savedRaw) {
+          const parsed: SavedVehicle[] = JSON.parse(savedRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            vehicles = parsed;
+            comparedIds = parsed.map((v) => v.id);
           }
-          return;
-        } catch (err) {
-          console.error("Failed to calculate shared vehicle configuration", err);
         }
+        nextSnapshot = {
+          vehicles,
+          selectedId: null,
+          comparedIds,
+          input: shared,
+          result: calc,
+        };
+        cachedKey = key;
+        cachedSnapshot = nextSnapshot;
+        return nextSnapshot;
+      } catch (err) {
+        console.error("Failed to calculate shared vehicle configuration", err);
       }
     }
+  }
 
+  if (savedRaw) {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: SavedVehicle[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setVehicles(parsed);
-          setSelectedId(parsed[0].id);
-          setInput(parsed[0].input);
-          setResult(parsed[0].result);
-          setComparedIds(parsed.map((v) => v.id));
-        }
+      const parsed: SavedVehicle[] = JSON.parse(savedRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        nextSnapshot = {
+          vehicles: parsed,
+          selectedId: parsed[0].id,
+          comparedIds: parsed.map((v) => v.id),
+          input: parsed[0].input,
+          result: parsed[0].result,
+        };
       }
     } catch (err) {
       console.error("Failed to load saved vehicles from localStorage", err);
     }
+  }
+
+  cachedKey = key;
+  cachedSnapshot = nextSnapshot;
+  return nextSnapshot;
+}
+
+function getServerDefaultState(): TCOCalculatorState {
+  return SERVER_DEFAULT_STATE;
+}
+
+function subscribeExternal(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("hashchange", callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener("hashchange", callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function persistVehicles(vehicles: SavedVehicle[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
+  } catch {
+    // ignore localStorage storage errors
+  }
+}
+
+export function useTCOCalculator(): UseTCOCalculatorReturn {
+  const hydratedState = React.useSyncExternalStore(
+    subscribeExternal,
+    getClientInitialState,
+    getServerDefaultState
+  );
+  const [userState, setUserState] = React.useState<TCOCalculatorState | null>(null);
+
+  const state = userState ?? hydratedState;
+
+  const updateActiveInput = React.useCallback(
+    (computeNextInput: (currentInput: TCOInput) => TCOInput) => {
+      setUserState((prev) => {
+        const cur = prev ?? getClientInitialState();
+        const nextInput = computeNextInput(cur.input);
+        try {
+          const nextResult = calculateTCO(nextInput);
+          let nextVehicles = cur.vehicles;
+          if (cur.selectedId) {
+            nextVehicles = cur.vehicles.map((v) =>
+              v.id === cur.selectedId ? { ...v, input: nextInput, result: nextResult } : v
+            );
+            persistVehicles(nextVehicles);
+          }
+          return {
+            ...cur,
+            vehicles: nextVehicles,
+            input: nextInput,
+            result: nextResult,
+          };
+        } catch {
+          return {
+            ...cur,
+            input: nextInput,
+          };
+        }
+      });
+    },
+    []
+  );
+
+  const selectVehicle = React.useCallback((id: string) => {
+    setUserState((prev) => {
+      const cur = prev ?? getClientInitialState();
+      const target = cur.vehicles.find((v) => v.id === id);
+      if (!target) return cur;
+      return {
+        ...cur,
+        selectedId: target.id,
+        input: target.input,
+        result: target.result,
+      };
+    });
   }, []);
 
-  // Sync state and live update the currently selected vehicle
-  const syncVehicle = React.useCallback(
-    (nextInput: TCOInput, nextResult: TCOResult) => {
-      setInput(nextInput);
-      setResult(nextResult);
-
-      if (selectedId) {
-        setVehicles((prev) => {
-          const updated = prev.map((v) =>
-            v.id === selectedId ? { ...v, input: nextInput, result: nextResult } : v
-          );
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          } catch {
-            // ignore localStorage storage errors
-          }
-          return updated;
-        });
-      }
-    },
-    [selectedId]
-  );
-
-  const selectVehicle = React.useCallback(
-    (id: string) => {
-      const target = vehicles.find((v) => v.id === id);
-      if (target) {
-        setSelectedId(target.id);
-        setInput(target.input);
-        setResult(target.result);
-      }
-    },
-    [vehicles]
-  );
-
   const addVehicle = React.useCallback(() => {
-    const id = typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `vehicle-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `vehicle-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
-    setVehicles((prev) => {
+    setUserState((prev) => {
+      const cur = prev ?? getClientInitialState();
       let newVehicle: SavedVehicle;
-      if (prev.length === 0) {
+      let nextInput = cur.input;
+      let nextResult = cur.result;
+
+      if (cur.vehicles.length === 0) {
         newVehicle = {
           id,
-          input: { ...input },
-          result: { ...result },
+          input: { ...cur.input },
+          result: { ...cur.result },
           createdAt: Date.now(),
         };
       } else {
-        const newVehicleInput: TCOInput = {
+        nextInput = {
           ...DEFAULT_TCO_INPUT,
-          vehicleName: `Vehicle ${prev.length + 1}`,
+          vehicleName: `Vehicle ${cur.vehicles.length + 1}`,
         };
-        const newVehicleResult = calculateTCO(newVehicleInput);
+        nextResult = calculateTCO(nextInput);
         newVehicle = {
           id,
-          input: newVehicleInput,
-          result: newVehicleResult,
+          input: nextInput,
+          result: nextResult,
           createdAt: Date.now(),
         };
-        setInput(newVehicleInput);
-        setResult(newVehicleResult);
       }
 
-      setSelectedId(id);
-      setComparedIds((prevCompared) => [...prevCompared, id]);
-      const nextVehicles = [...prev, newVehicle];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextVehicles));
-      } catch {
-        // ignore localStorage storage errors
-      }
-      return nextVehicles;
+      const nextVehicles = [...cur.vehicles, newVehicle];
+      persistVehicles(nextVehicles);
+
+      return {
+        vehicles: nextVehicles,
+        selectedId: id,
+        comparedIds: [...cur.comparedIds, id],
+        input: nextInput,
+        result: nextResult,
+      };
     });
-  }, [input, result]);
+  }, []);
 
-  const deleteVehicle = React.useCallback(
-    (id: string) => {
-      setVehicles((prev) => {
-        const nextVehicles = prev.filter((v) => v.id !== id);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextVehicles));
-        } catch {
-          // ignore localStorage storage errors
-        }
+  const deleteVehicle = React.useCallback((id: string) => {
+    setUserState((prev) => {
+      const cur = prev ?? getClientInitialState();
+      const nextVehicles = cur.vehicles.filter((v) => v.id !== id);
+      persistVehicles(nextVehicles);
 
-        if (selectedId === id) {
-          if (nextVehicles.length > 0) {
-            setSelectedId(nextVehicles[0].id);
-            setInput(nextVehicles[0].input);
-            setResult(nextVehicles[0].result);
-          } else {
-            setSelectedId(null);
-          }
+      let nextSelectedId = cur.selectedId;
+      let nextInput = cur.input;
+      let nextResult = cur.result;
+
+      if (cur.selectedId === id) {
+        if (nextVehicles.length > 0) {
+          nextSelectedId = nextVehicles[0].id;
+          nextInput = nextVehicles[0].input;
+          nextResult = nextVehicles[0].result;
+        } else {
+          nextSelectedId = null;
         }
-        return nextVehicles;
-      });
-      setComparedIds((prev) => prev.filter((item) => item !== id));
-    },
-    [selectedId]
-  );
+      }
+
+      return {
+        vehicles: nextVehicles,
+        selectedId: nextSelectedId,
+        comparedIds: cur.comparedIds.filter((item) => item !== id),
+        input: nextInput,
+        result: nextResult,
+      };
+    });
+  }, []);
 
   const toggleCompare = React.useCallback((id: string) => {
-    setComparedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setUserState((prev) => {
+      const cur = prev ?? getClientInitialState();
+      const nextCompared = cur.comparedIds.includes(id)
+        ? cur.comparedIds.filter((item) => item !== id)
+        : [...cur.comparedIds, id];
+      return {
+        ...cur,
+        comparedIds: nextCompared,
+      };
+    });
   }, []);
 
   const setAcquisitionMode = React.useCallback(
     (mode: AcquisitionType) => {
-      const next: TCOInput = { ...input, acquisition: mode };
-      if (mode === "cash") {
-        next.loanTermMonths = 0;
-        next.loanInterestRate = 0;
-        next.downPayment = next.purchasePrice;
-      } else if (mode === "loan") {
-        if (next.loanTermMonths === 0) next.loanTermMonths = 60;
-        if (next.loanInterestRate === 0) next.loanInterestRate = 5.5;
-        if (next.downPayment === next.purchasePrice) next.downPayment = Math.round(next.purchasePrice * 0.15);
-      } else if (mode === "lease") {
-        if (!next.lease) {
-          next.lease = {
-            leaseTermMonths: 36,
-            dueAtSigning: 3000,
-            monthlyPayment: 450,
-            moneyFactor: 0.0022,
-            residualPercent: 55.0,
-            acquisitionFee: 695,
-            dispositionFee: 395,
-            annualMileageLimit: 12000,
-            excessMileageFeeRate: 0.25,
-            buyoutAtEnd: false,
-          };
+      updateActiveInput((currentInput) => {
+        const next: TCOInput = { ...currentInput, acquisition: mode };
+        if (mode === "cash") {
+          next.loanTermMonths = 0;
+          next.loanInterestRate = 0;
+          next.downPayment = next.purchasePrice;
+        } else if (mode === "loan") {
+          if (next.loanTermMonths === 0) next.loanTermMonths = 60;
+          if (next.loanInterestRate === 0) next.loanInterestRate = 5.5;
+          if (next.downPayment === next.purchasePrice) {
+            next.downPayment = Math.round(next.purchasePrice * 0.15);
+          }
+        } else if (mode === "lease") {
+          if (!next.lease) {
+            next.lease = {
+              leaseTermMonths: 36,
+              dueAtSigning: 3000,
+              monthlyPayment: 450,
+              moneyFactor: 0.0022,
+              residualPercent: 55.0,
+              acquisitionFee: 695,
+              dispositionFee: 395,
+              annualMileageLimit: 12000,
+              excessMileageFeeRate: 0.25,
+              buyoutAtEnd: false,
+            };
+          }
+          next.ownershipYears = Math.ceil(next.lease.leaseTermMonths / 12);
         }
-        next.ownershipYears = Math.ceil(next.lease.leaseTermMonths / 12);
-      }
-      const nextResult = calculateTCO(next);
-      syncVehicle(next, nextResult);
+        return next;
+      });
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const calculate = React.useCallback(
     (e?: React.FormEvent) => {
       if (e) e.preventDefault();
-      try {
-        const res = calculateTCO(input);
-        syncVehicle(input, res);
-      } catch (err) {
-        console.error(err);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updateNumberField = React.useCallback(
     (field: keyof TCOInput, val: string) => {
       const num = parseFloat(val) || 0;
-      const nextInput = { ...input, [field]: num };
-      try {
-        const nextResult = calculateTCO(nextInput);
-        syncVehicle(nextInput, nextResult);
-      } catch {
-        setInput(nextInput);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput, [field]: num }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updateBooleanField = React.useCallback(
     (field: keyof TCOInput, val: boolean) => {
-      const nextInput = { ...input, [field]: val };
-      try {
-        const nextResult = calculateTCO(nextInput);
-        syncVehicle(nextInput, nextResult);
-      } catch {
-        setInput(nextInput);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput, [field]: val }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updateLeaseField = React.useCallback(
     (field: keyof LeaseInput, val: string | number | boolean) => {
-      if (!input.lease) return;
-      const nextLease = { ...input.lease, [field]: val };
-      const nextInput: TCOInput = { ...input, lease: nextLease };
-      if (field === "leaseTermMonths") {
-        nextInput.ownershipYears = Math.ceil(Number(val) / 12);
-      }
-      try {
-        const nextResult = calculateTCO(nextInput);
-        syncVehicle(nextInput, nextResult);
-      } catch {
-        setInput(nextInput);
-      }
+      updateActiveInput((currentInput) => {
+        if (!currentInput.lease) return currentInput;
+        const nextLease = { ...currentInput.lease, [field]: val };
+        const nextInput: TCOInput = { ...currentInput, lease: nextLease };
+        if (field === "leaseTermMonths") {
+          nextInput.ownershipYears = Math.ceil(Number(val) / 12);
+        }
+        return nextInput;
+      });
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updateVehicleName = React.useCallback(
     (vehicleName: string) => {
-      const nextInput = { ...input, vehicleName };
-      try {
-        const nextResult = calculateTCO(nextInput);
-        syncVehicle(nextInput, nextResult);
-      } catch {
-        setInput(nextInput);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput, vehicleName }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updatePowertrain = React.useCallback(
     (powertrain: PowertrainType) => {
-      const next = { ...input, powertrain };
-      try {
-        const nextResult = calculateTCO(next);
-        syncVehicle(next, nextResult);
-      } catch {
-        setInput(next);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput, powertrain }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   const updateTiming = React.useCallback(
     (incentiveTiming: IncentiveTiming) => {
-      const next = { ...input, incentiveTiming };
-      try {
-        const nextResult = calculateTCO(next);
-        syncVehicle(next, nextResult);
-      } catch {
-        setInput(next);
-      }
+      updateActiveInput((currentInput) => ({ ...currentInput, incentiveTiming }));
     },
-    [input, syncVehicle]
+    [updateActiveInput]
   );
 
   return {
-    state: {
-      vehicles,
-      selectedId,
-      comparedIds,
-      input,
-      result,
-    },
+    state,
     actions: {
       selectVehicle,
       addVehicle,

@@ -5,9 +5,10 @@ set -e
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-# Ensure npm is available, running 'nvm use lts' if needed
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm not found in current environment. Initializing via 'nvm use lts'..."
+# Ensure Node 26+ (per .nvmrc) and npm are available, running 'nvm use' if needed
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+if ! command -v npm >/dev/null 2>&1 || [ "$NODE_MAJOR" -lt 26 ]; then
+  echo "Initializing Node.js LTS environment via NVM..."
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [ -s "$NVM_DIR/nvm.sh" ]; then
     # shellcheck disable=SC1091
@@ -19,11 +20,11 @@ if ! command -v npm >/dev/null 2>&1; then
   fi
 
   if command -v nvm >/dev/null 2>&1; then
-    nvm use lts 2>/dev/null || nvm use --lts || true
+    nvm use 2>/dev/null || nvm use --lts || true
   fi
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "Error: npm is still not available after 'nvm use lts'. Please install Node.js." >&2
+    echo "Error: npm is still not available after 'nvm use'. Please install Node.js 26 LTS." >&2
     exit 1
   fi
 fi

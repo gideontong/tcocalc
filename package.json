@@ -2,6 +2,9 @@
   "name": "tcocalc-monorepo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "workspaces": [
     "frontend"
   ],
@@ -10,6 +13,9 @@
     "format:check": "prettier --check \"**/*.md\""
   },
   "devDependencies": {
-    "prettier": "^3.4.2"
+    "prettier": "^3.9.9"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

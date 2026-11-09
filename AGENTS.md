@@ -8,16 +8,16 @@ Welcome to the **tcocalc** codebase! This document outlines operational protocol
 
 When working with Node.js and npm in this repository:
 
-- Initialize the Node environment using **`nvm use lts`** before running npm commands.
+- Initialize the Node environment (Node.js 26 Active LTS via `.nvmrc`) using **`nvm use`** (or **`nvm use --lts`**) before running npm commands.
 - If NVM is not loaded in your shell subshell, ensure it is sourced:
 
   ```bash
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm use lts
+  nvm use
   ```
 
-- Go commands require Go 1.22+ (local environment uses Go 1.27+).
+- Go commands require Go 1.27+.
 
 ---
 
