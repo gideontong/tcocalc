@@ -181,4 +181,67 @@ describe("useTCOCalculator hook", () => {
     // Clean up hash
     window.location.hash = "";
   });
+
+  it("auto-fills zeroed energy fields on powertrain switch without overwriting custom values", () => {
+    const { result } = renderHook(() => useTCOCalculator());
+
+    // Switching from default hybrid (0 EV fields) to electric populates EV defaults
+    act(() => {
+      result.current.actions.updatePowertrain("electric");
+    });
+    expect(result.current.state.input.efficiencyKWhPer100Mi).toBe(28);
+    expect(result.current.state.input.electricityRatePerKWh).toBe(0.16);
+    expect(result.current.state.result.categories.fuelOrEnergy).toBeGreaterThan(0);
+
+    // Custom EV values should be preserved if switched away and back
+    act(() => {
+      result.current.actions.updateNumberField("efficiencyKWhPer100Mi", "24");
+      result.current.actions.updateNumberField("electricityRatePerKWh", "0.22");
+      result.current.actions.updateNumberField("fuelEconomyMPG", "0");
+      result.current.actions.updateNumberField("fuelPricePerGal", "0");
+      result.current.actions.updatePowertrain("gas");
+    });
+    expect(result.current.state.input.fuelEconomyMPG).toBe(30);
+    expect(result.current.state.input.fuelPricePerGal).toBe(3.8);
+
+    act(() => {
+      result.current.actions.updatePowertrain("electric");
+    });
+    expect(result.current.state.input.efficiencyKWhPer100Mi).toBe(24);
+    expect(result.current.state.input.electricityRatePerKWh).toBe(0.22);
+  });
+
+  it("clamps negative and upper-bound inputs and resets defaults without overwriting saved vehicles", () => {
+    const { result } = renderHook(() => useTCOCalculator());
+
+    act(() => {
+      result.current.actions.addVehicle();
+      result.current.actions.updateVehicleName("Saved EV");
+      result.current.actions.updateNumberField("purchasePrice", "-5000");
+      result.current.actions.updateNumberField("ownershipYears", "0");
+    });
+    expect(result.current.state.input.purchasePrice).toBe(0);
+    expect(result.current.state.input.ownershipYears).toBe(1);
+
+    act(() => {
+      result.current.actions.updateNumberField("ownershipYears", "999");
+      result.current.actions.updateNumberField("loanTermMonths", "500");
+    });
+    expect(result.current.state.input.ownershipYears).toBe(50);
+    expect(result.current.state.input.loanTermMonths).toBe(240);
+
+    act(() => {
+      result.current.actions.setAcquisitionMode("lease");
+      result.current.actions.updateLeaseField("leaseTermMonths", 360);
+    });
+    expect(result.current.state.input.lease?.leaseTermMonths).toBe(120);
+    expect(result.current.state.input.ownershipYears).toBe(10);
+
+    act(() => {
+      result.current.actions.resetDefaults();
+    });
+    expect(result.current.state.selectedId).toBeNull();
+    expect(result.current.state.input).toEqual(DEFAULT_TCO_INPUT);
+    expect(result.current.state.vehicles[0].input.vehicleName).toBe("Saved EV");
+  });
 });

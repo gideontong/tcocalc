@@ -58,6 +58,7 @@ export default function Home() {
               onNumberFieldChange={actions.updateNumberField}
               onBooleanFieldChange={actions.updateBooleanField}
               onCalculate={actions.calculate}
+              onReset={actions.resetDefaults}
             />
           </div>
 

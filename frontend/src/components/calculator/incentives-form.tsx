@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { IncentiveTiming, TCOInput } from "@/lib/tco";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -89,26 +89,24 @@ export function IncentivesForm({
             </button>
           </div>
 
-          <Input
+          <NumericInput
             id="taxCreditFederal"
-            type="number"
             step="250"
-            value={input.taxCreditFederal ?? ""}
+            value={input.taxCreditFederal}
             placeholder="e.g. 7500"
-            onChange={(e) => onNumberFieldChange("taxCreditFederal", e.target.value)}
+            onValueChange={(raw) => onNumberFieldChange("taxCreditFederal", raw)}
           />
         </div>
 
         {/* State / Regional Rebate */}
         <div>
           <Label htmlFor="taxCreditState">State & Local Rebates ($)</Label>
-          <Input
+          <NumericInput
             id="taxCreditState"
-            type="number"
             step="100"
-            value={input.taxCreditState ?? ""}
+            value={input.taxCreditState}
             placeholder="e.g. 2000 (CO, CA, NY, utility rebate)"
-            onChange={(e) => onNumberFieldChange("taxCreditState", e.target.value)}
+            onValueChange={(raw) => onNumberFieldChange("taxCreditState", raw)}
           />
         </div>
 
@@ -160,13 +158,12 @@ export function IncentivesForm({
               </span>
             )}
           </div>
-          <Input
+          <NumericInput
             id="annualEVSurcharge"
-            type="number"
             step="25"
-            value={input.annualEVSurcharge ?? ""}
+            value={input.annualEVSurcharge}
             placeholder={isElectric ? "e.g. 150 - 225" : "e.g. 0"}
-            onChange={(e) => onNumberFieldChange("annualEVSurcharge", e.target.value)}
+            onValueChange={(raw) => onNumberFieldChange("annualEVSurcharge", raw)}
           />
           <p className="text-[11px] text-muted-foreground">
             State registration surcharge to offset gasoline taxes (e.g. TX $200/yr, CA $108/yr, WA $225/yr).

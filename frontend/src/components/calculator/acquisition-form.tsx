@@ -1,10 +1,23 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { AcquisitionType, PowertrainType, TCOInput } from "@/lib/tco";
 import { cn } from "@/lib/utils";
 import { PowertrainSelector } from "./powertrain-selector";
+
+const DOWN_PAYMENT_PRESETS = [0, 0.1, 0.15, 0.2] as const;
+const LOAN_TERM_PRESETS = [36, 48, 60, 72] as const;
+
+function presetPillClass(isSelected: boolean): string {
+  return cn(
+    "px-2 py-0.5 text-[11px] font-semibold rounded-md border transition-all",
+    isSelected
+      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700"
+  );
+}
 
 export interface AcquisitionFormProps {
   input: TCOInput;
@@ -99,11 +112,10 @@ export function AcquisitionForm({
           <Label htmlFor="purchasePrice">
             {input.acquisition === "lease" ? "MSRP / Agreed Price ($)" : "Purchase Price ($)"}
           </Label>
-          <Input
+          <NumericInput
             id="purchasePrice"
-            type="number"
             value={input.purchasePrice}
-            onChange={(e) => onNumberFieldChange("purchasePrice", e.target.value)}
+            onValueChange={(raw) => onNumberFieldChange("purchasePrice", raw)}
           />
         </div>
 
@@ -111,12 +123,11 @@ export function AcquisitionForm({
         {input.acquisition === "cash" && (
           <div>
             <Label htmlFor="salesTaxRate">Sales Tax Rate (%)</Label>
-            <Input
+            <NumericInput
               id="salesTaxRate"
-              type="number"
               step="0.1"
               value={input.salesTaxRate}
-              onChange={(e) => onNumberFieldChange("salesTaxRate", e.target.value)}
+              onValueChange={(raw) => onNumberFieldChange("salesTaxRate", raw)}
             />
           </div>
         )}
@@ -124,46 +135,87 @@ export function AcquisitionForm({
         {/* Conditional Fields: Loan Mode */}
         {input.acquisition === "loan" && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="downPayment">Down Payment ($)</Label>
-                <Input
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="downPayment">Down Payment ($)</Label>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {input.purchasePrice > 0
+                      ? `${((input.downPayment / input.purchasePrice) * 100).toFixed(1)}%`
+                      : "0.0%"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {DOWN_PAYMENT_PRESETS.map((pct) => {
+                    const targetAmount = Math.round(input.purchasePrice * pct);
+                    const isSelected =
+                      pct === 0
+                        ? input.downPayment === 0
+                        : input.purchasePrice > 0 && input.downPayment === targetAmount;
+                    return (
+                      <button
+                        key={pct}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => onNumberFieldChange("downPayment", String(targetAmount))}
+                        className={presetPillClass(isSelected)}
+                      >
+                        {Math.round(pct * 100)}%
+                      </button>
+                    );
+                  })}
+                </div>
+                <NumericInput
                   id="downPayment"
-                  type="number"
                   value={input.downPayment}
-                  onChange={(e) => onNumberFieldChange("downPayment", e.target.value)}
+                  onValueChange={(raw) => onNumberFieldChange("downPayment", raw)}
                 />
               </div>
               <div>
                 <Label htmlFor="salesTaxRate">Sales Tax Rate (%)</Label>
-                <Input
+                <NumericInput
                   id="salesTaxRate"
-                  type="number"
                   step="0.1"
                   value={input.salesTaxRate}
-                  onChange={(e) => onNumberFieldChange("salesTaxRate", e.target.value)}
+                  onValueChange={(raw) => onNumberFieldChange("salesTaxRate", raw)}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <Label htmlFor="loanTermMonths">Loan Term (Months)</Label>
-                <Input
+                <div className="flex flex-wrap gap-1.5">
+                  {LOAN_TERM_PRESETS.map((months) => {
+                    const isSelected = input.loanTermMonths === months;
+                    return (
+                      <button
+                        key={months}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => onNumberFieldChange("loanTermMonths", String(months))}
+                        className={presetPillClass(isSelected)}
+                      >
+                        {months} mo
+                      </button>
+                    );
+                  })}
+                </div>
+                <NumericInput
                   id="loanTermMonths"
-                  type="number"
+                  max={240}
+                  integer
                   value={input.loanTermMonths}
-                  onChange={(e) => onNumberFieldChange("loanTermMonths", e.target.value)}
+                  onValueChange={(raw) => onNumberFieldChange("loanTermMonths", raw)}
                 />
               </div>
               <div>
                 <Label htmlFor="loanInterestRate">Loan Interest APR (%)</Label>
-                <Input
+                <NumericInput
                   id="loanInterestRate"
-                  type="number"
                   step="0.1"
                   value={input.loanInterestRate}
-                  onChange={(e) => onNumberFieldChange("loanInterestRate", e.target.value)}
+                  onValueChange={(raw) => onNumberFieldChange("loanInterestRate", raw)}
                 />
               </div>
             </div>
@@ -176,20 +228,22 @@ export function AcquisitionForm({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="dueAtSigning">Due at Signing ($)</Label>
-                <Input
+                <NumericInput
                   id="dueAtSigning"
-                  type="number"
                   value={input.lease.dueAtSigning}
-                  onChange={(e) => onLeaseFieldChange("dueAtSigning", parseFloat(e.target.value) || 0)}
+                  onValueChange={(_, num) => onLeaseFieldChange("dueAtSigning", num)}
                 />
               </div>
               <div>
                 <Label htmlFor="leaseTermMonths">Lease Term (Months)</Label>
-                <Input
+                <NumericInput
                   id="leaseTermMonths"
-                  type="number"
+                  min={1}
+                  max={120}
+                  integer
+                  fallback={36}
                   value={input.lease.leaseTermMonths}
-                  onChange={(e) => onLeaseFieldChange("leaseTermMonths", parseInt(e.target.value, 10) || 36)}
+                  onValueChange={(_, num) => onLeaseFieldChange("leaseTermMonths", num)}
                 />
               </div>
             </div>
@@ -197,22 +251,20 @@ export function AcquisitionForm({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="monthlyPayment">Direct Monthly Quote ($)</Label>
-                <Input
+                <NumericInput
                   id="monthlyPayment"
-                  type="number"
                   value={input.lease.monthlyPayment}
                   placeholder="e.g. 450"
-                  onChange={(e) => onLeaseFieldChange("monthlyPayment", parseFloat(e.target.value) || 0)}
+                  onValueChange={(_, num) => onLeaseFieldChange("monthlyPayment", num)}
                 />
               </div>
               <div>
                 <Label htmlFor="salesTaxRate">Monthly Sales Tax (%)</Label>
-                <Input
+                <NumericInput
                   id="salesTaxRate"
-                  type="number"
                   step="0.1"
                   value={input.salesTaxRate}
-                  onChange={(e) => onNumberFieldChange("salesTaxRate", e.target.value)}
+                  onValueChange={(raw) => onNumberFieldChange("salesTaxRate", raw)}
                 />
               </div>
             </div>
@@ -220,21 +272,22 @@ export function AcquisitionForm({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="annualMileageLimit">Annual Mileage Limit</Label>
-                <Input
+                <NumericInput
                   id="annualMileageLimit"
-                  type="number"
+                  integer
+                  fallback={12000}
                   value={input.lease.annualMileageLimit}
-                  onChange={(e) => onLeaseFieldChange("annualMileageLimit", parseFloat(e.target.value) || 12000)}
+                  onValueChange={(_, num) => onLeaseFieldChange("annualMileageLimit", num)}
                 />
               </div>
               <div>
                 <Label htmlFor="excessMileageFeeRate">Excess Mileage Fee ($/mi)</Label>
-                <Input
+                <NumericInput
                   id="excessMileageFeeRate"
-                  type="number"
                   step="0.05"
+                  fallback={0.25}
                   value={input.lease.excessMileageFeeRate}
-                  onChange={(e) => onLeaseFieldChange("excessMileageFeeRate", parseFloat(e.target.value) || 0.25)}
+                  onValueChange={(_, num) => onLeaseFieldChange("excessMileageFeeRate", num)}
                 />
               </div>
             </div>
@@ -242,11 +295,11 @@ export function AcquisitionForm({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="dispositionFee">Disposition Fee ($)</Label>
-                <Input
+                <NumericInput
                   id="dispositionFee"
-                  type="number"
+                  fallback={395}
                   value={input.lease.dispositionFee}
-                  onChange={(e) => onLeaseFieldChange("dispositionFee", parseFloat(e.target.value) || 395)}
+                  onValueChange={(_, num) => onLeaseFieldChange("dispositionFee", num)}
                 />
               </div>
               <div className="flex items-center space-x-2 pt-6">

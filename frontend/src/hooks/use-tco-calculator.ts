@@ -37,6 +37,7 @@ export interface TCOCalculatorActions {
   updatePowertrain: (powertrain: PowertrainType) => void;
   updateTiming: (timing: IncentiveTiming) => void;
   calculate: (e?: React.FormEvent) => void;
+  resetDefaults: () => void;
 }
 
 export interface UseTCOCalculatorReturn {
@@ -339,9 +340,28 @@ export function useTCOCalculator(): UseTCOCalculatorReturn {
     [updateActiveInput]
   );
 
+  const resetDefaults = React.useCallback(() => {
+    setUserState((prev) => {
+      const cur = prev ?? getClientInitialState();
+      const nextInput = { ...DEFAULT_TCO_INPUT };
+      return {
+        ...cur,
+        selectedId: null,
+        input: nextInput,
+        result: calculateTCO(nextInput),
+      };
+    });
+  }, []);
+
   const updateNumberField = React.useCallback(
     (field: keyof TCOInput, val: string) => {
-      const num = parseFloat(val) || 0;
+      const parsed = parseFloat(val);
+      let num = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      if (field === "ownershipYears") {
+        num = Math.min(50, Math.max(1, Math.round(num)));
+      } else if (field === "loanTermMonths") {
+        num = Math.min(240, Math.round(num));
+      }
       updateActiveInput((currentInput) => ({ ...currentInput, [field]: num }));
     },
     [updateActiveInput]
@@ -358,10 +378,17 @@ export function useTCOCalculator(): UseTCOCalculatorReturn {
     (field: keyof LeaseInput, val: string | number | boolean) => {
       updateActiveInput((currentInput) => {
         if (!currentInput.lease) return currentInput;
-        const nextLease = { ...currentInput.lease, [field]: val };
+        let sanitized = val;
+        if (typeof val === "number") {
+          sanitized = Number.isFinite(val) ? Math.max(0, val) : 0;
+          if (field === "leaseTermMonths") {
+            sanitized = Math.min(120, Math.max(1, Math.round(sanitized)));
+          }
+        }
+        const nextLease = { ...currentInput.lease, [field]: sanitized };
         const nextInput: TCOInput = { ...currentInput, lease: nextLease };
         if (field === "leaseTermMonths") {
-          nextInput.ownershipYears = Math.ceil(Number(val) / 12);
+          nextInput.ownershipYears = Math.max(1, Math.ceil(Number(sanitized) / 12));
         }
         return nextInput;
       });
@@ -378,7 +405,25 @@ export function useTCOCalculator(): UseTCOCalculatorReturn {
 
   const updatePowertrain = React.useCallback(
     (powertrain: PowertrainType) => {
-      updateActiveInput((currentInput) => ({ ...currentInput, powertrain }));
+      updateActiveInput((currentInput) => {
+        const next: TCOInput = { ...currentInput, powertrain };
+        if (powertrain === "electric") {
+          if (next.efficiencyKWhPer100Mi <= 0) {
+            next.efficiencyKWhPer100Mi = 28;
+          }
+          if (next.electricityRatePerKWh <= 0) {
+            next.electricityRatePerKWh = 0.16;
+          }
+        } else {
+          if (next.fuelEconomyMPG <= 0) {
+            next.fuelEconomyMPG = powertrain === "hybrid" ? 39 : 30;
+          }
+          if (next.fuelPricePerGal <= 0) {
+            next.fuelPricePerGal = 3.8;
+          }
+        }
+        return next;
+      });
     },
     [updateActiveInput]
   );
@@ -405,6 +450,7 @@ export function useTCOCalculator(): UseTCOCalculatorReturn {
       updatePowertrain,
       updateTiming,
       calculate,
+      resetDefaults,
     },
   };
 }

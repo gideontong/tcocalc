@@ -526,4 +526,98 @@ describe("Calculator Modular Components", () => {
       expect(onNumberChange).toHaveBeenCalledWith("annualEVSurcharge", "200");
     });
   });
+
+  describe("Form Ergonomics & Presets", () => {
+    it("renders down payment % readout and triggers down payment & loan term preset pills", () => {
+      const onNumberChange = vi.fn();
+
+      render(
+        <AcquisitionForm
+          input={sampleLoanInput}
+          onAcquisitionModeChange={vi.fn()}
+          onVehicleNameChange={vi.fn()}
+          onPowertrainChange={vi.fn()}
+          onNumberFieldChange={onNumberChange}
+          onLeaseFieldChange={vi.fn()}
+        />
+      );
+
+      // 6000 / 34500 = 17.4%
+      expect(screen.getByText("17.4%")).toBeInTheDocument();
+
+      const btn20 = screen.getByRole("button", { name: "20%" });
+      expect(btn20).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(btn20);
+      expect(onNumberChange).toHaveBeenCalledWith(
+        "downPayment",
+        String(Math.round(sampleLoanInput.purchasePrice * 0.2))
+      );
+
+      const btn60 = screen.getByRole("button", { name: "60 mo" });
+      expect(btn60).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(screen.getByRole("button", { name: "48 mo" }));
+      expect(onNumberChange).toHaveBeenCalledWith("loanTermMonths", "48");
+    });
+
+    it("rounds integer inputs consistently and clamps upper bounds", () => {
+      const onNumberChange = vi.fn();
+
+      render(
+        <UsageForm
+          input={sampleLoanInput}
+          onNumberFieldChange={onNumberChange}
+          onCalculate={vi.fn()}
+        />
+      );
+
+      const yearsInput = screen.getByLabelText(/Analysis Horizon/i) as HTMLInputElement;
+      fireEvent.change(yearsInput, { target: { value: "12.7" } });
+      expect(onNumberChange).toHaveBeenCalledWith("ownershipYears", "13");
+
+      fireEvent.change(yearsInput, { target: { value: "100" } });
+      expect(onNumberChange).toHaveBeenCalledWith("ownershipYears", "50");
+    });
+
+    it("allows clearing lease numeric fields while editing and restores fallback on blur", () => {
+      const onLeaseChange = vi.fn();
+
+      render(
+        <AcquisitionForm
+          input={sampleLeaseInput}
+          onAcquisitionModeChange={vi.fn()}
+          onVehicleNameChange={vi.fn()}
+          onPowertrainChange={vi.fn()}
+          onNumberFieldChange={vi.fn()}
+          onLeaseFieldChange={onLeaseChange}
+        />
+      );
+
+      const leaseTermInput = screen.getByLabelText(/Lease Term/i) as HTMLInputElement;
+      fireEvent.focus(leaseTermInput);
+      fireEvent.change(leaseTermInput, { target: { value: "" } });
+      expect(leaseTermInput.value).toBe("");
+      expect(onLeaseChange).not.toHaveBeenCalled();
+
+      // Blur while empty restores fallback (36)
+      fireEvent.blur(leaseTermInput);
+      expect(onLeaseChange).toHaveBeenCalledWith("leaseTermMonths", 36);
+      expect(leaseTermInput.value).toBe("36");
+    });
+
+    it("triggers onReset when clicking Reset Defaults in UsageForm", () => {
+      const onReset = vi.fn();
+
+      render(
+        <UsageForm
+          input={sampleLoanInput}
+          onNumberFieldChange={vi.fn()}
+          onCalculate={vi.fn()}
+          onReset={onReset}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Reset Defaults/i }));
+      expect(onReset).toHaveBeenCalledTimes(1);
+    });
+  });
 });
